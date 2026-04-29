@@ -3,660 +3,1219 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meta Activity Log</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Meta Ads Audit Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #111118;
-    --surface2: #18181f;
-    --surface3: #1e1e28;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.12);
-    --text: #f0f0f5;
-    --muted: #8888a0;
-    --faint: #3a3a4a;
-    --blue: #4f8ef7;
-    --blue-dim: rgba(79,142,247,0.12);
-    --blue-border: rgba(79,142,247,0.3);
-    --green: #3dd68c;
-    --green-dim: rgba(61,214,140,0.1);
-    --amber: #f7c34f;
-    --amber-dim: rgba(247,195,79,0.1);
-    --pink: #f74fa0;
-    --pink-dim: rgba(247,79,160,0.1);
-    --red: #f74f4f;
-    --red-dim: rgba(247,79,79,0.1);
-    --radius: 10px;
-    --radius-lg: 16px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; }
-  
-  /* SCROLLBAR */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 2px; }
+:root {
+  --bg: #0c0c10;
+  --s1: #13131a;
+  --s2: #1a1a24;
+  --s3: #22222e;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #eeeef5;
+  --muted: #7878a0;
+  --faint: #3a3a55;
+  --blue: #4f8ef7;
+  --blue-bg: rgba(79,142,247,0.1);
+  --blue-b: rgba(79,142,247,0.3);
+  --green: #3dd68c;
+  --green-bg: rgba(61,214,140,0.1);
+  --amber: #f0a04f;
+  --amber-bg: rgba(240,160,79,0.1);
+  --red: #f75f5f;
+  --red-bg: rgba(247,95,95,0.1);
+  --red-b: rgba(247,95,95,0.3);
+  --purple: #a78bfa;
+  --purple-bg: rgba(167,139,250,0.1);
+  --r: 10px;
+  --r-lg: 14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--faint);border-radius:2px}
 
-  /* LAYOUT */
-  .app { min-height: 100vh; display: flex; flex-direction: column; }
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex}
 
-  /* PIN SCREEN */
-  .pin-screen {
-    flex: 1; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 32px; padding: 2rem;
-  }
-  .pin-logo {
-    width: 56px; height: 56px; background: var(--blue-dim);
-    border: 1px solid var(--blue-border); border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .pin-logo svg { width: 26px; height: 26px; stroke: var(--blue); }
-  .pin-title { text-align: center; }
-  .pin-title h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 6px; }
-  .pin-title p { color: var(--muted); font-size: 13px; }
-  .pin-dots { display: flex; gap: 12px; }
-  .pin-dot {
-    width: 52px; height: 60px; background: var(--surface2);
-    border: 1px solid var(--border2); border-radius: var(--radius);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 26px; font-family: 'DM Mono', monospace;
-    color: var(--text); transition: border-color 0.2s;
-  }
-  .pin-dot.filled { border-color: var(--blue); color: var(--blue); }
-  .pin-dot.error { border-color: var(--red) !important; color: var(--red) !important; }
-  .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 200px; }
-  .key-btn {
-    height: 52px; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius); color: var(--text); font-family: 'Syne', sans-serif;
-    font-size: 18px; font-weight: 500; cursor: pointer; transition: all 0.1s;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .key-btn:hover { background: var(--surface3); border-color: var(--border2); }
-  .key-btn:active { transform: scale(0.95); }
-  .key-btn.del { font-size: 14px; color: var(--muted); }
-  .pin-error { color: var(--red); font-size: 12px; font-weight: 500; opacity: 0; transition: opacity 0.2s; }
-  .pin-error.show { opacity: 1; }
+/* ── PIN ── */
+#pin-screen{flex-direction:column;align-items:center;justify-content:center;gap:2rem;padding:2rem}
+.pin-logo{width:56px;height:56px;border-radius:14px;background:var(--blue-bg);border:1px solid var(--blue-b);display:flex;align-items:center;justify-content:center}
+.pin-logo svg{stroke:var(--blue)}
+.pin-title{text-align:center}
+.pin-title h1{font-size:22px;font-weight:600;letter-spacing:-0.5px;margin-bottom:5px}
+.pin-title p{color:var(--muted);font-size:13px}
+.pin-dots{display:flex;gap:12px}
+.pin-dot{width:54px;height:62px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--blue);transition:all 0.15s}
+.pin-dot.err{border-color:var(--red);color:var(--red)}
+.pin-err{font-size:12px;color:var(--red);opacity:0;transition:opacity 0.2s;height:18px}
+.pin-err.show{opacity:1}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:204px}
+.key{height:52px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;cursor:pointer;transition:all 0.1s}
+.key:hover{background:var(--s3);border-color:var(--border2)}
+.key:active{transform:scale(0.95)}
+.key.del{font-size:13px;color:var(--muted)}
+.key.empty{visibility:hidden}
 
-  /* CONFIG SCREEN */
-  .config-screen { flex: 1; display: flex; flex-direction: column; max-width: 560px; width: 100%; margin: 0 auto; padding: 2.5rem 1.5rem; gap: 28px; }
-  .config-header { display: flex; align-items: center; gap: 12px; }
-  .config-header-icon {
-    width: 40px; height: 40px; background: var(--blue-dim);
-    border: 1px solid var(--blue-border); border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .config-header h1 { font-size: 18px; font-weight: 600; }
-  .config-header p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+/* ── CONFIG ── */
+#config-screen{flex-direction:column;align-items:center;padding:3rem 1.5rem;background:var(--bg)}
+.config-wrap{width:100%;max-width:520px;display:flex;flex-direction:column;gap:20px}
+.config-header{display:flex;align-items:center;gap:12px}
+.config-icon{width:40px;height:40px;border-radius:10px;background:var(--blue-bg);border:1px solid var(--blue-b);display:flex;align-items:center;justify-content:center}
+.config-header h2{font-size:17px;font-weight:600}
+.config-header p{font-size:12px;color:var(--muted);margin-top:2px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
+.field input,.field select{width:100%;padding:10px 13px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color 0.15s}
+.field input:focus,.field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,142,247,0.1)}
+.field input::placeholder{color:var(--faint)}
+.field .hint{font-size:11px;color:var(--faint);line-height:1.5}
+.field .hint a{color:var(--blue)}
+.chips-row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);transition:all 0.15s;font-family:'DM Sans',sans-serif}
+.chip.on{background:var(--blue-bg);border-color:var(--blue-b);color:var(--blue)}
+.chip:hover:not(.on){background:var(--s2);color:var(--text)}
+.custom-range{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type=date]{color-scheme:dark}
+.btn-primary{width:100%;padding:12px;background:var(--blue);border:none;border-radius:var(--r);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary:hover{background:#6fa3f9}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+.err-box{background:var(--red-bg);border:1px solid var(--red-b);border-radius:var(--r);padding:11px 14px;font-size:12px;color:#f99;line-height:1.5}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-  .field-group { display: flex; flex-direction: column; gap: 8px; }
-  .field-label { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
-  .field-hint { font-size: 11px; color: var(--faint); margin-top: 4px; line-height: 1.5; }
-  
-  input[type=text], input[type=password], input[type=date] {
-    width: 100%; padding: 11px 14px; background: var(--surface2);
-    border: 1px solid var(--border2); border-radius: var(--radius);
-    color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px;
-    outline: none; transition: border-color 0.2s;
-  }
-  input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(79,142,247,0.1); }
-  input::placeholder { color: var(--faint); }
+/* ── APP SHELL ── */
+#app-screen{flex-direction:row}
+.sidebar{width:200px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 10px;gap:2px;min-height:100vh}
+.sb-brand{padding:6px 10px;margin-bottom:10px}
+.sb-brand h1{font-size:14px;font-weight:600;color:var(--text)}
+.sb-brand p{font-size:11px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-section{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:0.07em;padding:10px 10px 4px;margin-top:6px}
+.nav{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;color:var(--muted);border:none;background:transparent;width:100%;text-align:left;transition:all 0.15s;position:relative}
+.nav:hover{background:var(--s2);color:var(--text)}
+.nav.on{background:var(--s2);color:var(--text);font-weight:500;border:1px solid var(--border2)}
+.nav svg{flex-shrink:0;width:14px;height:14px}
+.nb{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600}
+.nb-red{background:var(--red-bg);color:var(--red)}
+.nb-blue{background:var(--blue-bg);color:var(--blue)}
+.sb-footer{margin-top:auto;padding-top:12px;border-top:1px solid var(--border)}
+.sb-footer button{width:100%;padding:7px 10px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;transition:all 0.15s}
+.sb-footer button:hover{background:var(--s2);color:var(--text)}
 
-  .token-row { display: flex; gap: 8px; align-items: flex-start; }
-  .token-row input { flex: 1; }
-  .token-link {
-    display: inline-flex; align-items: center; gap: 5px; margin-top: 4px;
-    font-size: 11px; color: var(--blue); text-decoration: none; opacity: 0.8;
-  }
-  .token-link:hover { opacity: 1; }
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--s1);flex-shrink:0}
+.acct-tag{font-size:12px;padding:4px 10px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.range-chips{display:flex;gap:4px}
+.rc{font-size:11px;padding:4px 10px;border-radius:14px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all 0.12s}
+.rc.on{background:var(--blue-bg);border-color:var(--blue-b);color:var(--blue)}
+.sync-label{margin-left:auto;font-size:11px;color:var(--faint)}
+.content{flex:1;overflow-y:auto;padding:20px}
+.view{display:none}
+.view.on{display:block}
 
-  .chips-row { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip {
-    padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
-    cursor: pointer; border: 1px solid var(--border2); background: transparent;
-    color: var(--muted); transition: all 0.15s; font-family: 'Syne', sans-serif;
-  }
-  .chip.active { background: var(--blue-dim); border-color: var(--blue-border); color: var(--blue); }
-  .chip:hover:not(.active) { border-color: var(--border2); color: var(--text); background: var(--surface2); }
+/* ── STAT CARDS ── */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
+.scard{background:var(--s2);border-radius:var(--r);padding:13px 15px;border:1px solid var(--border)}
+.scard .n{font-size:22px;font-weight:600;font-family:'DM Mono',monospace;margin-bottom:2px}
+.scard .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em}
 
-  .custom-range { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* ── CHART CARDS ── */
+.row2{display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:1.25rem}
+.ccrd{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px}
+.ccrd-title{font-size:12px;font-weight:500;margin-bottom:10px;color:var(--text)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;color:var(--muted)}
+.ld{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
 
-  .btn-primary {
-    width: 100%; padding: 13px; background: var(--blue); border: none;
-    border-radius: var(--radius); color: #fff; font-family: 'Syne', sans-serif;
-    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .btn-primary:hover { background: #6fa3f9; }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+/* ── TABLES ── */
+.tbl-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:1rem}
+.tbl-title{font-size:12px;font-weight:500;padding:12px 16px;border-bottom:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{padding:8px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:0.07em;background:var(--s2);border-bottom:1px solid var(--border)}
+td{padding:10px 14px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,0.02)}
+.mono{font-family:'DM Mono',monospace;font-size:11px}
 
-  .error-box {
-    background: var(--red-dim); border: 1px solid rgba(247,79,79,0.25);
-    border-radius: var(--radius); padding: 12px 14px; font-size: 12px;
-    color: #f99; line-height: 1.5;
-  }
+/* ── FEED ── */
+.fc-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.fc-label{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:0.06em}
+.fc{font-size:11px;padding:4px 10px;border-radius:14px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all 0.12s}
+.fc.on{font-weight:500}
+.fc-off.on{background:var(--red-bg);border-color:var(--red-b);color:var(--red)}
+.fc-on.on{background:var(--green-bg);border-color:rgba(61,214,140,0.3);color:var(--green)}
+.fc-bud.on{background:var(--amber-bg);border-color:rgba(240,160,79,0.3);color:var(--amber)}
+.fc-tgt.on{background:var(--blue-bg);border-color:var(--blue-b);color:var(--blue)}
+.fc-bid.on{background:var(--purple-bg);border-color:rgba(167,139,250,0.3);color:var(--purple)}
+.feed-item{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.feed-item:last-child{border-bottom:none}
+.fi-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fi-body{flex:1;min-width:0}
+.fi-title{font-size:12px;font-weight:500;margin-bottom:2px}
+.fi-sub{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px}
+.fi-val{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace}
+.vo{color:var(--muted);text-decoration:line-through}
+.vn{color:var(--green);font-weight:500}
+.fi-time{font-size:10px;color:var(--faint);white-space:nowrap;padding-top:2px;flex-shrink:0}
 
-  /* RESULTS SCREEN */
-  .results-screen { flex: 1; display: flex; flex-direction: column; max-width: 860px; width: 100%; margin: 0 auto; padding: 1.5rem; }
-  .results-topbar {
-    display: flex; align-items: center; gap: 12px; padding-bottom: 1.25rem;
-    border-bottom: 1px solid var(--border); margin-bottom: 1.25rem;
-  }
-  .back-btn {
-    padding: 7px 12px; background: var(--surface2); border: 1px solid var(--border2);
-    border-radius: 8px; color: var(--muted); font-family: 'Syne', sans-serif;
-    font-size: 12px; cursor: pointer; transition: all 0.15s;
-  }
-  .back-btn:hover { color: var(--text); border-color: var(--border2); background: var(--surface3); }
-  .topbar-info { flex: 1; }
-  .topbar-info h2 { font-size: 15px; font-weight: 600; font-family: 'DM Mono', monospace; }
-  .topbar-info p { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .export-btn {
-    padding: 7px 14px; background: var(--surface2); border: 1px solid var(--border2);
-    border-radius: 8px; color: var(--muted); font-family: 'Syne', sans-serif;
-    font-size: 12px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px;
-  }
-  .export-btn:hover { color: var(--text); border-color: var(--border2); }
+/* ── CPA ── */
+.cpa-controls{display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid var(--border);margin-bottom:12px;flex-wrap:wrap}
+.cpa-controls label{font-size:12px;color:var(--muted)}
+.cpa-controls input[type=number]{width:72px;padding:6px 10px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none}
+.cpa-controls input[type=number]:focus{border-color:var(--blue)}
+.cpa-controls select{padding:6px 10px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none}
+.apply-btn{padding:6px 14px;background:var(--blue);border:none;border-radius:var(--r);color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer}
+.apply-btn:hover{background:#6fa3f9}
+.cpa-summary{margin-left:auto;font-size:11px;color:var(--faint)}
+.urg-high{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;background:var(--red-bg);color:var(--red)}
+.urg-med{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;background:var(--amber-bg);color:var(--amber)}
+.bar-w{width:64px;background:var(--s3);border-radius:3px;height:4px;margin-top:4px}
+.bar-f{height:4px;border-radius:3px;background:var(--red)}
+.pause-btn{font-size:11px;padding:5px 11px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);border-radius:var(--r);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;white-space:nowrap}
+.pause-btn:hover{background:rgba(247,95,95,0.2)}
+.pause-btn.done{background:var(--green-bg);color:var(--green);border-color:rgba(61,214,140,0.3);cursor:default}
 
-  .filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; flex-wrap: wrap; }
-  .filter-label { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; }
-  .filter-chip {
-    display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
-    border-radius: 16px; border: 1px solid var(--border2); background: transparent;
-    font-size: 11px; font-weight: 500; cursor: pointer; font-family: 'Syne', sans-serif;
-    transition: all 0.15s; color: var(--muted);
-  }
-  .filter-chip .dot { width: 6px; height: 6px; border-radius: 50%; }
-  .filter-chip.active-acct { background: var(--green-dim); border-color: rgba(61,214,140,0.3); color: var(--green); }
-  .filter-chip.active-camp { background: var(--blue-dim); border-color: var(--blue-border); color: var(--blue); }
-  .filter-chip.active-adset { background: var(--amber-dim); border-color: rgba(247,195,79,0.3); color: var(--amber); }
-  .filter-chip.active-ad { background: var(--pink-dim); border-color: rgba(247,79,160,0.3); color: var(--pink); }
+/* ── CREATIVE ── */
+.cr-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:10px}
+.cr-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cr-thumb{width:44px;height:44px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.cr-name{font-size:12px;font-weight:500;margin-bottom:2px}
+.cr-type{font-size:10px;color:var(--muted)}
+.cr-wins{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.cr-win{font-size:10px;padding:3px 8px;border-radius:9px;background:var(--green-bg);color:var(--green);border:1px solid rgba(61,214,140,0.2)}
+.cr-warn{font-size:10px;padding:3px 8px;border-radius:9px;background:var(--amber-bg);color:var(--amber);border:1px solid rgba(240,160,79,0.2)}
+.copy-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:8px;font-size:11px;margin-bottom:5px}
+.copy-btn{margin-left:auto;font-size:11px;padding:4px 10px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-b);border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500}
 
-  /* ACTIVITY GROUPS */
-  .group { margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
-  .group-head {
-    display: flex; align-items: center; gap: 10px; padding: 12px 16px;
-    background: var(--surface); cursor: pointer; transition: background 0.15s;
-    border-bottom: 1px solid var(--border);
-  }
-  .group-head:hover { background: var(--surface2); }
-  .group-head.collapsed { border-bottom: none; }
-  .level-pill {
-    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 10px;
-    letter-spacing: 0.06em; text-transform: uppercase;
-  }
-  .pill-acct { background: var(--green-dim); color: var(--green); border: 1px solid rgba(61,214,140,0.25); }
-  .pill-camp { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(79,142,247,0.25); }
-  .pill-adset { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(247,195,79,0.25); }
-  .pill-ad { background: var(--pink-dim); color: var(--pink); border: 1px solid rgba(247,79,160,0.25); }
-  .group-count { font-size: 12px; color: var(--muted); }
-  .group-toggle { margin-left: auto; font-size: 10px; color: var(--faint); }
+/* ── SMART FILTERS ── */
+.sf-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:10px}
+.sf-head{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.sf-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sf-title{font-size:13px;font-weight:500}
+.sf-desc{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.sf-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sf-row label{font-size:11px;color:var(--muted)}
+.sf-row input[type=number]{width:70px;padding:5px 9px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none}
+.sf-row select{padding:5px 9px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;outline:none}
+.sf-result{margin-top:10px;display:none;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.sf-count{padding:3px 9px;border-radius:8px;font-weight:600;font-size:11px}
 
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; }
-  thead tr { background: var(--surface2); }
-  th {
-    padding: 9px 14px; text-align: left; font-size: 10px; font-weight: 600;
-    color: var(--faint); letter-spacing: 0.07em; text-transform: uppercase;
-    border-bottom: 1px solid var(--border);
-  }
-  td {
-    padding: 10px 14px; font-size: 12px; border-bottom: 1px solid var(--border);
-    vertical-align: top; line-height: 1.5;
-  }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--surface2); }
-  .td-field { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text); }
-  .td-obj { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .td-time { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--faint); }
-  .val-old { color: var(--muted); text-decoration: line-through; font-family: 'DM Mono', monospace; font-size: 11px; }
-  .val-new { color: var(--green); font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; }
-  .val-none { color: var(--faint); font-style: italic; font-size: 11px; }
-  .event-tag {
-    display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px;
-    font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-  }
-  .tag-update { background: rgba(79,142,247,0.12); color: var(--blue); }
-  .tag-create { background: var(--green-dim); color: var(--green); }
-  .tag-delete { background: var(--red-dim); color: var(--red); }
-  .tag-other { background: var(--surface3); color: var(--muted); }
-
-  .empty-state {
-    text-align: center; padding: 4rem 2rem; color: var(--muted);
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
-  }
-  .empty-state svg { opacity: 0.3; }
-  .empty-state p { font-size: 13px; }
-
-  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .stats-row { display: flex; gap: 10px; margin-bottom: 1.25rem; flex-wrap: wrap; }
-  .stat-card {
-    flex: 1; min-width: 100px; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 10px 14px;
-  }
-  .stat-num { font-size: 22px; font-weight: 600; font-family: 'DM Mono', monospace; margin-bottom: 2px; }
-  .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-
-  .debug-toggle { font-size: 11px; color: var(--faint); cursor: pointer; text-decoration: underline; margin-top: 8px; }
-  .debug-panel { display: none; margin-top: 8px; padding: 10px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+/* ── EMPTY / LOADING ── */
+.empty{text-align:center;padding:4rem 2rem;color:var(--muted)}
+.empty svg{opacity:0.25;margin-bottom:10px}
+.loading{text-align:center;padding:3rem;color:var(--muted);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.tag{font-size:10px;padding:2px 7px;border-radius:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;display:inline-block}
+.tag-update{background:var(--blue-bg);color:var(--blue)}
+.tag-create{background:var(--green-bg);color:var(--green)}
+.tag-delete{background:var(--red-bg);color:var(--red)}
+.tag-other{background:var(--s3);color:var(--muted)}
+.level-pill{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;display:inline-block}
+.lp-acct{background:var(--green-bg);color:var(--green)}
+.lp-camp{background:var(--blue-bg);color:var(--blue)}
+.lp-adset{background:var(--amber-bg);color:var(--amber)}
+.lp-ad{background:var(--purple-bg);color:var(--purple)}
 </style>
 </head>
 <body>
-<div class="app" id="app"></div>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen" class="screen active">
+  <div class="pin-logo">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  </div>
+  <div class="pin-title"><h1>Meta Ads Audit</h1><p>Enter your PIN to continue</p></div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <p class="pin-err" id="pin-err">Incorrect PIN. Try again.</p>
+  <div class="keypad">
+    <button class="key" data-k="1">1</button><button class="key" data-k="2">2</button><button class="key" data-k="3">3</button>
+    <button class="key" data-k="4">4</button><button class="key" data-k="5">5</button><button class="key" data-k="6">6</button>
+    <button class="key" data-k="7">7</button><button class="key" data-k="8">8</button><button class="key" data-k="9">9</button>
+    <button class="key empty"></button><button class="key" data-k="0">0</button><button class="key del" data-k="del">⌫</button>
+  </div>
+</div>
+
+<!-- CONFIG SCREEN -->
+<div id="config-screen" class="screen">
+  <div class="config-wrap">
+    <div class="config-header">
+      <div class="config-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <div><h2>Meta Ads Audit</h2><p>Connect your ad account to begin</p></div>
+    </div>
+
+    <div class="field">
+      <label>Meta Access Token</label>
+      <input type="password" id="cfg-token" placeholder="EAAxxxxxx..." autocomplete="off">
+      <p class="hint">Get from <a href="https://developers.facebook.com/tools/explorer/" target="_blank">Meta Graph API Explorer</a> — needs <code>ads_read</code> permission. Use a System User token to avoid expiry.</p>
+    </div>
+
+    <div class="field">
+      <label>Ad Account ID</label>
+      <input type="text" id="cfg-acct" placeholder="act_1234567890">
+      <p class="hint">Include the <code>act_</code> prefix.</p>
+    </div>
+
+    <div class="field">
+      <label>CPA Target (USD)</label>
+      <input type="number" id="cfg-cpa" placeholder="45" value="45" min="1">
+      <p class="hint">Ads exceeding this cost per result will be flagged in alerts.</p>
+    </div>
+
+    <div class="field">
+      <label>Time Range</label>
+      <div class="chips-row">
+        <button class="chip" data-days="7">7 days</button>
+        <button class="chip on" data-days="30">30 days</button>
+        <button class="chip" data-days="60">60 days</button>
+        <button class="chip" data-days="90">90 days</button>
+        <button class="chip" data-days="custom">Custom</button>
+      </div>
+    </div>
+
+    <div class="field" id="custom-range-field" style="display:none">
+      <label>Date Range</label>
+      <div class="custom-range">
+        <div><label style="font-size:11px;color:var(--faint);display:block;margin-bottom:5px">From</label><input type="date" id="cfg-from"></div>
+        <div><label style="font-size:11px;color:var(--faint);display:block;margin-bottom:5px">To</label><input type="date" id="cfg-to"></div>
+      </div>
+    </div>
+
+    <div id="cfg-err" style="display:none" class="err-box"></div>
+
+    <button class="btn-primary" id="cfg-submit">
+      <span id="cfg-btn-text">Fetch Activity Log</span>
+    </button>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app-screen" class="screen">
+  <div class="sidebar">
+    <div class="sb-brand">
+      <h1>Meta Audit</h1>
+      <p id="sb-acct">act_XXXXXXXXX</p>
+    </div>
+    <div class="sb-section">Views</div>
+    <button class="nav on" data-view="overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Overview
+    </button>
+    <button class="nav" data-view="feed">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Activity log
+    </button>
+    <button class="nav" data-view="cpa">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      CPA alerts
+      <span class="nb nb-red" id="nav-cpa-count">0</span>
+    </button>
+    <button class="nav" data-view="creative">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Creative intel
+    </button>
+    <div class="sb-section">Tools</div>
+    <button class="nav" data-view="smart">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      Smart filters
+    </button>
+    <div class="sb-footer">
+      <button id="export-btn">Export CSV</button>
+      <button id="back-btn" style="margin-top:6px">Change account</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <span class="acct-tag" id="top-acct"></span>
+      <div class="range-chips">
+        <button class="rc" data-r="7">7d</button>
+        <button class="rc on" data-r="30">30d</button>
+        <button class="rc" data-r="60">60d</button>
+        <button class="rc" data-r="90">90d</button>
+      </div>
+      <span class="sync-label" id="sync-label">Loading…</span>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <div class="view on" id="v-overview">
+        <div class="grid4">
+          <div class="scard"><div class="n" id="ov-total">—</div><div class="l">Total changes</div></div>
+          <div class="scard"><div class="n" style="color:var(--red)" id="ov-cpa">—</div><div class="l">CPA alerts</div></div>
+          <div class="scard"><div class="n" style="color:var(--amber)" id="ov-budget">—</div><div class="l">Budget edits</div></div>
+          <div class="scard"><div class="n" style="color:var(--red)" id="ov-paused">—</div><div class="l">Ads paused</div></div>
+        </div>
+        <div class="row2">
+          <div class="ccrd">
+            <div class="ccrd-title">Changes by type</div>
+            <div class="legend" id="donut-legend"></div>
+            <div style="position:relative;width:100%;height:170px"><canvas id="donut-chart" role="img" aria-label="Donut chart of change types"></canvas></div>
+          </div>
+          <div class="ccrd">
+            <div class="ccrd-title">Activity over time</div>
+            <div class="legend">
+              <span><span class="ld" style="background:#f75f5f"></span>Paused</span>
+              <span><span class="ld" style="background:#3dd68c"></span>Activated</span>
+              <span><span class="ld" style="background:#f0a04f"></span>Budget</span>
+            </div>
+            <div style="position:relative;width:100%;height:170px"><canvas id="line-chart" role="img" aria-label="Line chart of activity over time"></canvas></div>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-title">Top campaigns by change volume</div>
+          <table>
+            <colgroup><col style="width:42%"><col style="width:14%"><col style="width:22%"><col style="width:22%"></colgroup>
+            <thead><tr><th>Campaign</th><th>Changes</th><th>Last change</th><th>Top action</th></tr></thead>
+            <tbody id="ov-camp-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ACTIVITY LOG -->
+      <div class="view" id="v-feed">
+        <div class="fc-bar">
+          <span class="fc-label">Show:</span>
+          <button class="fc fc-off on" data-fc="off">Turned off</button>
+          <button class="fc fc-on on" data-fc="on">Turned on</button>
+          <button class="fc fc-bud on" data-fc="bud">Budget</button>
+          <button class="fc fc-tgt on" data-fc="tgt">Targeting</button>
+          <button class="fc fc-bid on" data-fc="bid">Bid</button>
+        </div>
+        <div id="feed-list"></div>
+      </div>
+
+      <!-- CPA ALERTS -->
+      <div class="view" id="v-cpa">
+        <div class="cpa-controls">
+          <label>Flag ads with CPA above</label>
+          <input type="number" id="cpa-thresh" value="45" min="1">
+          <label>USD · Last</label>
+          <select id="cpa-period"><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option></select>
+          <button class="apply-btn" id="cpa-apply">Apply</button>
+          <span class="cpa-summary" id="cpa-summary"></span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <colgroup><col style="width:30%"><col style="width:14%"><col style="width:16%"><col style="width:15%"><col style="width:13%"><col style="width:12%"></colgroup>
+            <thead><tr><th>Ad name</th><th>CPA</th><th>vs target</th><th>Ad set</th><th>Spend</th><th>Action</th></tr></thead>
+            <tbody id="cpa-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CREATIVE INTEL -->
+      <div class="view" id="v-creative">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">Creatives ranked by CPA efficiency across your ad sets. Green = scale it. Copy winning creatives to underperforming locations.</p>
+        <div id="creative-list"></div>
+      </div>
+
+      <!-- SMART FILTERS -->
+      <div class="view" id="v-smart">
+        <div class="sf-card">
+          <div class="sf-head">
+            <div class="sf-icon" style="background:var(--red-bg)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <span class="sf-title">CPA threshold alert</span>
+          </div>
+          <p class="sf-desc">Show only changes on ads where cost per result exceeded your target.</p>
+          <div class="sf-row">
+            <label>CPA above</label><input type="number" id="sf-cpa" value="45">
+            <label>USD and action was</label>
+            <select id="sf-cpa-action"><option>Paused</option><option>Any change</option><option>Budget cut</option></select>
+            <button class="apply-btn" id="sf-cpa-apply">Apply</button>
+          </div>
+          <div class="sf-result" id="sf-cpa-result">
+            <span class="sf-count" style="background:var(--red-bg);color:var(--red)" id="sf-cpa-count"></span>
+            <span>ads matched</span>
+          </div>
+        </div>
+        <div class="sf-card">
+          <div class="sf-head">
+            <div class="sf-icon" style="background:var(--amber-bg)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <span class="sf-title">Budget swing detector</span>
+          </div>
+          <p class="sf-desc">Flag campaigns where daily budget changed by more than X%.</p>
+          <div class="sf-row">
+            <label>Budget changed by more than</label><input type="number" id="sf-bud" value="20">
+            <label>%</label>
+            <select id="sf-bud-dir"><option>Either direction</option><option>Increase only</option><option>Decrease only</option></select>
+            <button class="apply-btn" id="sf-bud-apply">Apply</button>
+          </div>
+          <div class="sf-result" id="sf-bud-result">
+            <span class="sf-count" style="background:var(--amber-bg);color:var(--amber)" id="sf-bud-count"></span>
+            <span>budget changes matched</span>
+          </div>
+        </div>
+        <div class="sf-card">
+          <div class="sf-head">
+            <div class="sf-icon" style="background:var(--blue-bg)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <span class="sf-title">Hide delivery-only noise</span>
+          </div>
+          <p class="sf-desc">Suppress first_delivery_event rows that have no meaningful old/new value — these clutter the log.</p>
+          <div class="sf-row">
+            <label>Hide events of type</label>
+            <select><option>first_delivery_event</option><option>All delivery events</option></select>
+            <button class="apply-btn" id="sf-hide-apply">Apply</button>
+          </div>
+          <div class="sf-result" id="sf-hide-result" style="display:flex">
+            <span class="sf-count" style="background:var(--blue-bg);color:var(--blue)" id="sf-hide-count">0</span>
+            <span>delivery events hidden</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <script>
-const GRAPH_BASE = 'https://graph.facebook.com/v22.0';
-
-let S = {
-  screen: 'pin',
-  pin: '',
-  pinError: false,
-  acctId: '',
-  token: '',
-  days: '30',
-  customFrom: '',
-  customTo: '',
-  loading: false,
-  error: '',
-  activities: [],
-  filters: ['account','campaign','adset','ad'],
-  collapsed: {},
-  debugRaw: '',
-  showDebug: false
+var GRAPH = 'https://graph.facebook.com/v22.0';
+var STATE = {
+  pin: '', token: '', acctId: '', cpaTarget: 45,
+  days: 30, customFrom: '', customTo: '',
+  activities: [], insights: [],
+  activeFC: {off:true, on:true, bud:true, tgt:true, bid:true},
+  hideDelivery: true,
+  donutChart: null, lineChart: null
 };
 
-const LEVELS = {
-  account: { label:'Account', pill:'pill-acct', color:'var(--green)', filterClass:'active-acct', dotColor:'#3dd68c' },
-  campaign: { label:'Campaign', pill:'pill-camp', color:'var(--blue)', filterClass:'active-camp', dotColor:'#4f8ef7' },
-  adset: { label:'Ad set', pill:'pill-adset', color:'var(--amber)', filterClass:'active-adset', dotColor:'#f7c34f' },
-  ad: { label:'Ad', pill:'pill-ad', color:'var(--pink)', filterClass:'active-ad', dotColor:'#f74fa0' }
-};
-
-function tagClass(evt='') {
-  const e = evt.toUpperCase();
-  if (e.includes('CREATE') || e.includes('ADD')) return 'tag-create';
-  if (e.includes('DELETE') || e.includes('REMOVE')) return 'tag-delete';
-  if (e.includes('UPDATE') || e.includes('EDIT') || e.includes('CHANGE')) return 'tag-update';
-  return 'tag-other';
+// ── UTILITIES ──────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function normalizeLevel(raw='') {
-  const r = raw.toLowerCase();
+function parseVal(v) {
+  if (v === null || v === undefined || v === '') return '';
+  if (typeof v === 'object') {
+    if (v.amount !== undefined) {
+      var amt = parseFloat(v.amount);
+      if (!isNaN(amt)) return '$' + (amt / 100).toFixed(2) + (v.currency ? ' ' + v.currency : '');
+    }
+    var keys = Object.keys(v);
+    if (keys.length === 0) return '';
+    var out = keys.map(function(k) { return k + ': ' + v[k]; }).join(', ');
+    return out.length > 60 ? out.slice(0, 60) + '…' : out;
+  }
+  var s = String(v);
+  // Format unix timestamps within values
+  if (/^\d{10}$/.test(s)) {
+    var d = new Date(parseInt(s) * 1000);
+    if (!isNaN(d.getTime())) return d.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+  }
+  return s.length > 80 ? s.slice(0, 80) + '…' : s;
+}
+
+function parseTime(ts) {
+  if (!ts) return '—';
+  var d;
+  if (typeof ts === 'number') d = new Date(ts * 1000);
+  else if (typeof ts === 'string' && /^\d+$/.test(ts)) d = new Date(parseInt(ts) * 1000);
+  else d = new Date(ts);
+  if (!d || isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+
+function timeAgo(ts) {
+  if (!ts) return '—';
+  var d;
+  if (typeof ts === 'number') d = new Date(ts * 1000);
+  else if (typeof ts === 'string' && /^\d+$/.test(ts)) d = new Date(parseInt(ts) * 1000);
+  else d = new Date(ts);
+  if (!d || isNaN(d.getTime())) return '—';
+  var diff = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+function humanEvent(evt, objType) {
+  var map = {
+    'UPDATE_CAMPAIGN_RUN_STATUS': 'Status changed',
+    'UPDATE_AD_RUN_STATUS': 'Status changed',
+    'UPDATE_ADSET_RUN_STATUS': 'Status changed',
+    'UPDATE_CAMPAIGN_BUDGET': 'Budget updated',
+    'UPDATE_ADSET_BUDGET': 'Budget updated',
+    'UPDATE_ADSET_BIDDING': 'Bid strategy updated',
+    'UPDATE_ADSET_TARGETING': 'Targeting updated',
+    'UPDATE_AD_CREATIVE': 'Creative updated',
+    'UPDATE_AD_BID_AMOUNT': 'Bid amount changed',
+    'UPDATE_CAMPAIGN_NAME': 'Campaign renamed',
+    'UPDATE_ADSET_NAME': 'Ad set renamed',
+    'UPDATE_AD_NAME': 'Ad renamed',
+    'UPDATE_ADSET_SCHEDULE': 'Schedule updated',
+    'CREATE_CAMPAIGN': 'Campaign created',
+    'CREATE_ADSET': 'Ad set created',
+    'CREATE_AD': 'Ad created',
+    'DELETE_CAMPAIGN': 'Campaign deleted',
+    'DELETE_ADSET': 'Ad set deleted',
+    'DELETE_AD': 'Ad deleted',
+    'FIRST_DELIVERY_EVENT': 'First delivery'
+  };
+  if (map[evt]) return map[evt];
+  if (!evt) return 'Modified';
+  return evt.replace(/_/g,' ').toLowerCase().replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+}
+
+function catFromEvent(evt, oldVal, newVal) {
+  if (!evt) return 'other';
+  var e = evt.toUpperCase();
+  if (e.includes('STATUS')) {
+    var nv = String(newVal||'').toUpperCase();
+    var ov = String(oldVal||'').toUpperCase();
+    if (nv.includes('ACTIVE') || nv === 'TRUE') return 'on';
+    if (nv.includes('PAUSE') || nv.includes('INACTIVE') || ov.includes('ACTIVE')) return 'off';
+    return 'off';
+  }
+  if (e.includes('BUDGET')) return 'bud';
+  if (e.includes('TARGETING') || e.includes('AUDIENCE')) return 'tgt';
+  if (e.includes('BID') || e.includes('BIDDING')) return 'bid';
+  return 'other';
+}
+
+function normLevel(s) {
+  var r = (s||'').toLowerCase();
   if (r.includes('account')) return 'account';
   if (r.includes('campaign')) return 'campaign';
-  if (r.includes('adset') || r.includes('ad_set') || r.includes('ad set')) return 'adset';
+  if (r.includes('adset') || r.includes('ad_set')) return 'adset';
   if (r.includes('ad')) return 'ad';
   return 'account';
 }
 
-function groupByLevel(acts) {
-  const g = { account:[], campaign:[], adset:[], ad:[] };
-  acts.forEach(a => {
-    const lvl = normalizeLevel(a.object_type || a.level || '');
-    g[lvl].push(a);
+function levelPill(level) {
+  var cls = {account:'lp-acct',campaign:'lp-camp',adset:'lp-adset',ad:'lp-ad'};
+  var lbl = {account:'Account',campaign:'Campaign',adset:'Ad set',ad:'Ad'};
+  return '<span class="level-pill ' + (cls[level]||'lp-camp') + '">' + (lbl[level]||level) + '</span>';
+}
+
+function tagClass(evt) {
+  if (!evt) return 'tag-other';
+  var e = evt.toUpperCase();
+  if (e.startsWith('CREATE')) return 'tag-create';
+  if (e.startsWith('DELETE')) return 'tag-delete';
+  if (e.startsWith('UPDATE')) return 'tag-update';
+  return 'tag-other';
+}
+
+function extractOldNew(activity) {
+  var old_val = '', new_val = '';
+  try {
+    var ed = activity.extra_data;
+    if (ed) {
+      if (typeof ed === 'string') ed = JSON.parse(ed);
+      old_val = parseVal(ed.old_value !== undefined ? ed.old_value : (ed.oldValue !== undefined ? ed.oldValue : (ed.from !== undefined ? ed.from : '')));
+      new_val = parseVal(ed.new_value !== undefined ? ed.new_value : (ed.newValue !== undefined ? ed.newValue : (ed.to !== undefined ? ed.to : (ed.value !== undefined ? ed.value : ''))));
+    }
+  } catch(e) {}
+  if (!old_val && activity.old_value !== undefined) old_val = parseVal(activity.old_value);
+  if (!new_val && activity.new_value !== undefined) new_val = parseVal(activity.new_value);
+  return {old_val: old_val, new_val: new_val};
+}
+
+function processActivities(raw) {
+  var out = [];
+  for (var i = 0; i < raw.length; i++) {
+    var a = raw[i];
+    if (!a) continue;
+    var vals = extractOldNew(a);
+    var evt = a.event_type || a.action || '';
+    var level = normLevel(a.object_type || '');
+    var cat = catFromEvent(evt, vals.old_val, vals.new_val);
+    var isDelivery = evt === 'FIRST_DELIVERY_EVENT';
+    out.push({
+      id: a.object_id || i,
+      level: level,
+      name: a.object_name || '',
+      event: evt,
+      humanEvent: humanEvent(evt),
+      cat: cat,
+      isDelivery: isDelivery,
+      old_val: vals.old_val,
+      new_val: vals.new_val,
+      ts: a.event_time || a.updated_time || 0,
+      actor: a.actor_name || a.application_name || '',
+      fields: a.changed_all_fields || []
+    });
+  }
+  return out;
+}
+
+// ── PIN ────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.key').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var k = btn.dataset.k;
+    if (!k) return;
+    if (k === 'del') { STATE.pin = STATE.pin.slice(0,-1); updatePinDots(); return; }
+    if (STATE.pin.length >= 4) return;
+    STATE.pin += k;
+    updatePinDots();
+    if (STATE.pin.length === 4) setTimeout(checkPin, 120);
   });
-  return g;
-}
+});
 
-// ── RENDER ─────────────────────────────────────────────────────────────────
-function render() {
-  const el = document.getElementById('app');
-  if (S.screen === 'pin') el.innerHTML = renderPin();
-  else if (S.screen === 'config') el.innerHTML = renderConfig();
-  else el.innerHTML = renderResults();
-  bind();
-}
-
-function renderPin() {
-  const filled = S.pin.length;
-  return `
-  <div class="pin-screen">
-    <div class="pin-logo">
-      <svg fill="none" stroke-width="1.8" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="11" width="18" height="11" rx="2" stroke-linecap="round"/>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke-linecap="round"/>
-      </svg>
-    </div>
-    <div class="pin-title">
-      <h1>Meta Activity Log</h1>
-      <p>Enter your 4-digit PIN</p>
-    </div>
-    <div class="pin-dots">
-      ${[0,1,2,3].map(i=>`<div class="pin-dot${filled>i?' filled':''}${S.pinError?' error':''}">${filled>i?'●':''}</div>`).join('')}
-    </div>
-    <p class="pin-error${S.pinError?' show':''}">Incorrect PIN. Try again.</p>
-    <div class="pin-keypad">
-      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((k,i)=>`
-        <button class="key-btn${k==='⌫'?' del':''}" data-key="${k}" ${k===''?'style="visibility:hidden"':''}>${k}</button>
-      `).join('')}
-    </div>
-  </div>`;
-}
-
-function renderConfig() {
-  const isCustom = S.days === 'custom';
-  return `
-  <div class="config-screen">
-    <div class="config-header">
-      <div class="config-header-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-        </svg>
-      </div>
-      <div>
-        <h1>Activity Log</h1>
-        <p>Pull real change history from Meta Graph API</p>
-      </div>
-    </div>
-
-    <div class="field-group">
-      <label class="field-label">Meta Access Token</label>
-      <div class="token-row">
-        <input type="password" id="token-input" placeholder="EAAxxxxxx..." value="${S.token}" autocomplete="off">
-      </div>
-      <p class="field-hint">
-        Get a token from <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="color:var(--blue)">Meta Graph API Explorer</a> — needs <code style="background:var(--surface3);padding:1px 5px;border-radius:4px;font-size:10px">ads_read</code> permission.
-      </p>
-    </div>
-
-    <div class="field-group">
-      <label class="field-label">Ad Account ID</label>
-      <input type="text" id="acct-input" placeholder="act_1234567890" value="${S.acctId}">
-      <p class="field-hint">Include the <code style="background:var(--surface3);padding:1px 5px;border-radius:4px;font-size:10px">act_</code> prefix.</p>
-    </div>
-
-    <div class="field-group">
-      <label class="field-label">Time Range</label>
-      <div class="chips-row">
-        ${['7','30','60','90','custom'].map(d=>`
-          <button class="chip${S.days===d?' active':''}" data-days="${d}">${d==='custom'?'Custom':d+' days'}</button>
-        `).join('')}
-      </div>
-    </div>
-
-    ${isCustom ? `
-    <div class="field-group">
-      <label class="field-label">Date Range</label>
-      <div class="custom-range">
-        <div>
-          <label style="font-size:11px;color:var(--faint);display:block;margin-bottom:5px">From</label>
-          <input type="date" id="cf-input" value="${S.customFrom}">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--faint);display:block;margin-bottom:5px">To</label>
-          <input type="date" id="ct-input" value="${S.customTo}">
-        </div>
-      </div>
-    </div>` : ''}
-
-    ${S.error ? `<div class="error-box">${S.error}</div>` : ''}
-
-    <button class="btn-primary" id="fetch-btn" ${S.loading?'disabled':''}>
-      ${S.loading ? `<span class="spinner"></span> Fetching…` : 'Fetch Activity Log'}
-    </button>
-    
-    ${S.debugRaw ? `<span class="debug-toggle" id="debug-toggle">Show raw response</span>
-    <pre class="debug-panel" id="debug-panel" style="display:${S.showDebug?'block':'none'}">${escHtml(S.debugRaw)}</pre>` : ''}
-  </div>`;
-}
-
-function renderResults() {
-  const groups = groupByLevel(S.activities);
-  const total = S.activities.length;
-  const dateLabel = S.days==='custom' ? `${S.customFrom} → ${S.customTo}` : `Last ${S.days} days`;
-
-  const statCards = Object.entries(groups).map(([lvl, items]) => {
-    const m = LEVELS[lvl];
-    return `<div class="stat-card">
-      <div class="stat-num" style="color:${m.color}">${items.length}</div>
-      <div class="stat-lbl">${m.label}</div>
-    </div>`;
-  }).join('');
-
-  let groupsHTML = '';
-  ['account','campaign','adset','ad'].forEach(lvl => {
-    if (!S.filters.includes(lvl)) return;
-    const items = groups[lvl] || [];
-    if (!items.length) return;
-    const m = LEVELS[lvl];
-    const collapsed = S.collapsed[lvl];
-
-    const rows = items.map(a => {
-      const fields = a.changed_all_fields?.length ? a.changed_all_fields : [a.event_type||'Event'];
-      const when = a.event_time ? new Date(a.event_time*1000).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : (a.updated_time ? new Date(a.updated_time).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—');
-      const evt = a.event_type || a.action || 'Modified';
-      return fields.map(field => `
-        <tr>
-          <td>
-            <div class="td-field">${escHtml(field)}</div>
-            ${a.object_name ? `<div class="td-obj">${escHtml(a.object_name)}</div>` : ''}
-          </td>
-          <td><span class="event-tag ${tagClass(evt)}">${escHtml(evt)}</span></td>
-          <td class="td-time">${when}</td>
-          <td>${a.old_value ? `<span class="val-old">${escHtml(String(a.old_value))}</span>` : '<span class="val-none">—</span>'}</td>
-          <td>${a.new_value ? `<span class="val-new">${escHtml(String(a.new_value))}</span>` : '<span class="val-none">—</span>'}</td>
-        </tr>`).join('');
-    }).join('');
-
-    groupsHTML += `
-    <div class="group">
-      <div class="group-head${collapsed?' collapsed':''}" data-collapse="${lvl}">
-        <span class="level-pill ${m.pill}">${m.label}</span>
-        <span class="group-count">${items.length} change${items.length!==1?'s':''}</span>
-        <span class="group-toggle">${collapsed?'▶':'▼'}</span>
-      </div>
-      ${collapsed ? '' : `
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Field</th><th>Event</th><th>Time</th><th>Old Value</th><th>New Value</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`}
-    </div>`;
-  });
-
-  const visibleTotal = ['account','campaign','adset','ad'].filter(l=>S.filters.includes(l)).reduce((s,l)=>s+(groups[l]?.length||0),0);
-
-  return `
-  <div class="results-screen">
-    <div class="results-topbar">
-      <button class="back-btn" id="back-btn">← Back</button>
-      <div class="topbar-info">
-        <h2>${S.acctId}</h2>
-        <p>${dateLabel} · ${total} total change${total!==1?'s':''}</p>
-      </div>
-      <button class="export-btn" id="export-btn">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        Export CSV
-      </button>
-    </div>
-
-    <div class="stats-row">${statCards}</div>
-
-    <div class="filter-bar">
-      <span class="filter-label">Level</span>
-      ${['account','campaign','adset','ad'].map(lvl => {
-        const m = LEVELS[lvl];
-        const active = S.filters.includes(lvl);
-        return `<button class="filter-chip${active?' '+m.filterClass:''}" data-filter="${lvl}">
-          <span class="dot" style="background:${active?m.dotColor:'var(--faint)'}"></span>
-          ${m.label} (${groups[lvl]?.length||0})
-        </button>`;
-      }).join('')}
-    </div>
-
-    ${visibleTotal===0 ? `
-    <div class="empty-state">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <p>No changes found for the selected filters.</p>
-    </div>` : groupsHTML}
-  </div>`;
-}
-
-// ── EVENTS ──────────────────────────────────────────────────────────────────
-function bind() {
-  if (S.screen === 'pin') {
-    document.querySelectorAll('.key-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const k = btn.dataset.key;
-        if (k === '⌫') { S.pin = S.pin.slice(0,-1); S.pinError = false; render(); return; }
-        if (k === '' || S.pin.length >= 4) return;
-        S.pin += k;
-        S.pinError = false;
-        render();
-        if (S.pin.length === 4) {
-          setTimeout(() => {
-            if (S.pin === '1234') { S.screen = 'config'; S.pin = ''; render(); }
-            else { S.pinError = true; setTimeout(() => { S.pin = ''; render(); }, 500); render(); }
-          }, 150);
-        }
-      });
-    });
-  }
-  if (S.screen === 'config') {
-    document.getElementById('token-input')?.addEventListener('input', e => S.token = e.target.value);
-    document.getElementById('acct-input')?.addEventListener('input', e => S.acctId = e.target.value);
-    document.querySelectorAll('[data-days]').forEach(b => b.addEventListener('click', () => { S.days = b.dataset.days; render(); }));
-    document.getElementById('cf-input')?.addEventListener('change', e => S.customFrom = e.target.value);
-    document.getElementById('ct-input')?.addEventListener('change', e => S.customTo = e.target.value);
-    document.getElementById('fetch-btn')?.addEventListener('click', fetchData);
-    document.getElementById('debug-toggle')?.addEventListener('click', () => { S.showDebug = !S.showDebug; render(); });
-  }
-  if (S.screen === 'results') {
-    document.getElementById('back-btn')?.addEventListener('click', () => { S.screen = 'config'; S.error = ''; render(); });
-    document.getElementById('export-btn')?.addEventListener('click', exportCSV);
-    document.querySelectorAll('[data-filter]').forEach(b => {
-      b.addEventListener('click', () => {
-        const f = b.dataset.filter;
-        S.filters = S.filters.includes(f) ? (S.filters.length>1 ? S.filters.filter(x=>x!==f) : S.filters) : [...S.filters, f];
-        render();
-      });
-    });
-    document.querySelectorAll('[data-collapse]').forEach(b => {
-      b.addEventListener('click', () => { S.collapsed[b.dataset.collapse] = !S.collapsed[b.dataset.collapse]; render(); });
-    });
+function updatePinDots() {
+  var err = document.getElementById('pin-err').classList.contains('show');
+  for (var i = 0; i < 4; i++) {
+    var d = document.getElementById('pd' + i);
+    d.textContent = STATE.pin.length > i ? '●' : '';
+    d.className = 'pin-dot' + (STATE.pin.length > i ? ' filled' : '') + (err ? ' err' : '');
   }
 }
 
-// ── FETCH ───────────────────────────────────────────────────────────────────
-async function fetchData() {
-  if (!S.token.trim()) { S.error = 'Please enter your Meta access token.'; render(); return; }
-  if (!S.acctId.trim()) { S.error = 'Please enter your Ad Account ID.'; render(); return; }
-
-  S.loading = true; S.error = ''; S.debugRaw = ''; render();
-
-  const now = Math.floor(Date.now()/1000);
-  let since, until;
-  if (S.days === 'custom') {
-    since = S.customFrom ? Math.floor(new Date(S.customFrom).getTime()/1000) : now - 30*86400;
-    until = S.customTo ? Math.floor(new Date(S.customTo+'T23:59:59').getTime()/1000) : now;
+function checkPin() {
+  if (STATE.pin === '1234') {
+    showScreen('config');
   } else {
-    since = now - parseInt(S.days)*86400;
+    document.getElementById('pin-err').classList.add('show');
+    [0,1,2,3].forEach(function(i) { document.getElementById('pd'+i).classList.add('err'); });
+    setTimeout(function() {
+      STATE.pin = '';
+      document.getElementById('pin-err').classList.remove('show');
+      updatePinDots();
+    }, 600);
+  }
+}
+
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('[data-days]').forEach(function(b) {
+  b.addEventListener('click', function() {
+    document.querySelectorAll('[data-days]').forEach(function(x) { x.classList.remove('on'); });
+    b.classList.add('on');
+    STATE.days = b.dataset.days;
+    document.getElementById('custom-range-field').style.display = STATE.days === 'custom' ? 'block' : 'none';
+  });
+});
+
+document.getElementById('cfg-submit').addEventListener('click', startFetch);
+document.getElementById('back-btn').addEventListener('click', function() { showScreen('config'); });
+document.getElementById('export-btn').addEventListener('click', exportCSV);
+
+async function startFetch() {
+  var token = document.getElementById('cfg-token').value.trim();
+  var acct = document.getElementById('cfg-acct').value.trim();
+  var cpa = parseFloat(document.getElementById('cfg-cpa').value) || 45;
+  var errEl = document.getElementById('cfg-err');
+
+  if (!token) { showErr('Please enter your Meta access token.'); return; }
+  if (!acct) { showErr('Please enter your Ad Account ID.'); return; }
+  if (!acct.startsWith('act_')) acct = 'act_' + acct;
+  if (STATE.days === 'custom') {
+    var cf = document.getElementById('cfg-from').value;
+    var ct = document.getElementById('cfg-to').value;
+    if (!cf || !ct) { showErr('Please select both From and To dates.'); return; }
+    STATE.customFrom = cf; STATE.customTo = ct;
+  }
+
+  errEl.style.display = 'none';
+  STATE.token = token; STATE.acctId = acct; STATE.cpaTarget = cpa;
+  document.getElementById('cfg-submit').disabled = true;
+  document.getElementById('cfg-btn-text').innerHTML = '<span class="spinner"></span> Fetching data…';
+
+  try {
+    await fetchAllData();
+    document.getElementById('sb-acct').textContent = acct;
+    document.getElementById('top-acct').textContent = acct;
+    document.getElementById('cpa-thresh').value = cpa;
+    document.getElementById('sf-cpa').value = cpa;
+    showScreen('app');
+    renderAll();
+  } catch(err) {
+    showErr('Error: ' + err.message);
+  }
+  document.getElementById('cfg-submit').disabled = false;
+  document.getElementById('cfg-btn-text').textContent = 'Fetch Activity Log';
+}
+
+function showErr(msg) {
+  var e = document.getElementById('cfg-err');
+  e.textContent = msg; e.style.display = 'block';
+}
+
+async function fetchAllData() {
+  var now = Math.floor(Date.now() / 1000);
+  var since, until;
+  if (STATE.days === 'custom') {
+    since = Math.floor(new Date(STATE.customFrom).getTime() / 1000);
+    until = Math.floor(new Date(STATE.customTo + 'T23:59:59').getTime() / 1000);
+  } else {
+    since = now - parseInt(STATE.days) * 86400;
     until = now;
   }
 
-  const acctId = S.acctId.startsWith('act_') ? S.acctId : 'act_'+S.acctId;
-  const params = new URLSearchParams({
-    access_token: S.token,
-    since: since,
-    until: until,
-    limit: 200,
+  // Fetch activities
+  var actParams = new URLSearchParams({
+    access_token: STATE.token,
+    since: since, until: until, limit: 200,
     fields: 'event_type,event_time,object_type,object_name,object_id,changed_all_fields,extra_data,actor_name,application_name'
   });
+  var actResp = await fetch(GRAPH + '/' + STATE.acctId + '/activities?' + actParams);
+  var actJson = await actResp.json();
+  if (actJson.error) throw new Error(actJson.error.message);
 
-  try {
-    const resp = await fetch(`${GRAPH_BASE}/${acctId}/activities?${params}`);
-    const json = await resp.json();
-    S.debugRaw = JSON.stringify(json, null, 2);
+  var rawActs = actJson.data || [];
 
-    if (json.error) {
-      S.error = `Meta API error: ${json.error.message}`;
-      S.loading = false; render(); return;
-    }
-
-    let acts = [];
-    if (Array.isArray(json.data)) {
-      acts = json.data.map(a => {
-        // Parse extra_data for old/new values
-        let old_val = '', new_val = '';
-        if (a.extra_data) {
-          try {
-            const ed = typeof a.extra_data === 'string' ? JSON.parse(a.extra_data) : a.extra_data;
-            old_val = ed.old_value ?? ed.oldValue ?? ed.from ?? '';
-            new_val = ed.new_value ?? ed.newValue ?? ed.to ?? ed.value ?? '';
-          } catch(e) {}
-        }
-        return { ...a, old_value: old_val, new_value: new_val };
-      });
-      // Paginate if next page available
-      if (json.paging?.next && acts.length < 500) {
-        try {
-          const resp2 = await fetch(json.paging.next);
-          const json2 = await resp2.json();
-          if (Array.isArray(json2.data)) {
-            acts = [...acts, ...json2.data.map(a => {
-              let old_val='', new_val='';
-              if (a.extra_data) {
-                try { const ed = typeof a.extra_data==='string'?JSON.parse(a.extra_data):a.extra_data; old_val=ed.old_value??ed.oldValue??ed.from??''; new_val=ed.new_value??ed.newValue??ed.to??ed.value??''; } catch(e){}
-              }
-              return { ...a, old_value: old_val, new_value: new_val };
-            })];
-          }
-        } catch(e) {}
-      }
-    }
-
-    S.activities = acts;
-    S.screen = 'results';
-  } catch(err) {
-    S.error = `Network error: ${err.message}. Check CORS — you may need to run this from a local server or the token is invalid.`;
-    S.debugRaw = err.toString();
+  // Paginate up to 500 more
+  if (actJson.paging && actJson.paging.next && rawActs.length < 500) {
+    try {
+      var p2 = await fetch(actJson.paging.next);
+      var p2j = await p2.json();
+      if (p2j.data) rawActs = rawActs.concat(p2j.data);
+    } catch(e) {}
   }
-  S.loading = false;
-  render();
+
+  STATE.activities = processActivities(rawActs);
+
+  // Fetch CPA insights (separate call)
+  try {
+    var insFields = 'name,adset_id,adset{name},status,insights.date_preset(last_7d){spend,cost_per_action_type,actions,impressions,clicks}';
+    var insParams = new URLSearchParams({
+      access_token: STATE.token,
+      fields: insFields,
+      limit: 100,
+      filtering: JSON.stringify([{field:'effective_status',operator:'IN',value:['ACTIVE','PAUSED','WITH_ISSUES']}])
+    });
+    var insResp = await fetch(GRAPH + '/' + STATE.acctId + '/ads?' + insParams);
+    var insJson = await insResp.json();
+    STATE.insights = insJson.data || [];
+  } catch(e) { STATE.insights = []; }
+
+  document.getElementById('sync-label').textContent = 'Synced ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
 }
 
-function exportCSV() {
-  const rows = [['Level','Object Name','Object ID','Event','Field','Old Value','New Value','Actor','Time']];
-  S.activities.forEach(a => {
-    const fields = a.changed_all_fields?.length ? a.changed_all_fields : ['—'];
-    fields.forEach(f => {
-      rows.push([
-        a.object_type||'',
-        a.object_name||'',
-        a.object_id||'',
-        a.event_type||'',
-        f,
-        a.old_value||'',
-        a.new_value||'',
-        a.actor_name||a.application_name||'',
-        a.event_time ? new Date(a.event_time*1000).toISOString() : (a.updated_time||'')
-      ]);
+// ── RENDER ALL ─────────────────────────────────────────────────────────────
+function renderAll() {
+  renderOverview();
+  renderFeed();
+  renderCPA();
+  renderCreative();
+  renderSmartFilters();
+}
+
+// ── OVERVIEW ───────────────────────────────────────────────────────────────
+function renderOverview() {
+  var acts = STATE.activities.filter(function(a) { return !a.isDelivery; });
+  var budgetCount = acts.filter(function(a) { return a.cat === 'bud'; }).length;
+  var pausedCount = acts.filter(function(a) { return a.cat === 'off'; }).length;
+  var cpaAlerts = getCPAAlerts().length;
+
+  document.getElementById('ov-total').textContent = acts.length;
+  document.getElementById('ov-budget').textContent = budgetCount;
+  document.getElementById('ov-paused').textContent = pausedCount;
+  document.getElementById('ov-cpa').textContent = cpaAlerts;
+  document.getElementById('nav-cpa-count').textContent = cpaAlerts;
+
+  // Donut data
+  var cats = {Status:0, Budget:0, Targeting:0, Bid:0, Other:0};
+  acts.forEach(function(a) {
+    var e = (a.event||'').toUpperCase();
+    if (e.includes('STATUS')) cats.Status++;
+    else if (e.includes('BUDGET')) cats.Budget++;
+    else if (e.includes('TARGET') || e.includes('AUDIENCE')) cats.Targeting++;
+    else if (e.includes('BID')) cats.Bid++;
+    else cats.Other++;
+  });
+  var colors = ['#f75f5f','#f0a04f','#4f8ef7','#a78bfa','#5f5f7a'];
+  var labels = Object.keys(cats);
+  var vals = Object.values(cats);
+  var total = vals.reduce(function(s,v){return s+v;},0);
+
+  var legendHtml = '';
+  labels.forEach(function(l,i) {
+    var pct = total ? Math.round(vals[i]/total*100) : 0;
+    legendHtml += '<span><span class="ld" style="background:' + colors[i] + '"></span>' + l + ' ' + pct + '%</span>';
+  });
+  document.getElementById('donut-legend').innerHTML = legendHtml;
+
+  if (STATE.donutChart) STATE.donutChart.destroy();
+  STATE.donutChart = new Chart(document.getElementById('donut-chart'), {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 0 }] },
+    options: { responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{ legend:{display:false} } }
+  });
+
+  // Line chart — bucket by day
+  var dayMs = 86400000;
+  var numDays = STATE.days === 'custom' ? 30 : Math.min(parseInt(STATE.days), 30);
+  var now = Date.now();
+  var dayLabels=[], pausedArr=[], activatedArr=[], budgetArr=[];
+  for (var d = numDays-1; d >= 0; d--) {
+    var dayStart = now - (d+1)*dayMs;
+    var dayEnd = now - d*dayMs;
+    var label = new Date(dayStart).toLocaleDateString('en-US', {month:'short',day:'numeric'});
+    if (numDays > 14 && d % 7 !== 0) label = '';
+    dayLabels.push(label);
+    var p=0,ac=0,bu=0;
+    acts.forEach(function(a) {
+      var ts = typeof a.ts === 'number' ? a.ts*1000 : new Date(a.ts).getTime();
+      if (ts >= dayStart && ts < dayEnd) {
+        if (a.cat==='off') p++;
+        else if (a.cat==='on') ac++;
+        else if (a.cat==='bud') bu++;
+      }
+    });
+    pausedArr.push(p); activatedArr.push(ac); budgetArr.push(bu);
+  }
+
+  var gc = 'rgba(255,255,255,0.06)';
+  var tc = '#555570';
+  if (STATE.lineChart) STATE.lineChart.destroy();
+  STATE.lineChart = new Chart(document.getElementById('line-chart'), {
+    type: 'line',
+    data: {
+      labels: dayLabels,
+      datasets: [
+        {label:'Paused',data:pausedArr,borderColor:'#f75f5f',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:2,borderDash:[]},
+        {label:'Activated',data:activatedArr,borderColor:'#3dd68c',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:2,borderDash:[4,3]},
+        {label:'Budget',data:budgetArr,borderColor:'#f0a04f',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:2,borderDash:[2,2]}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{grid:{color:gc},ticks:{color:tc,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:8}},
+        y:{grid:{color:gc},ticks:{color:tc,font:{size:10}},beginAtZero:true}
+      },
+      plugins:{legend:{display:false}}
+    }
+  });
+
+  // Top campaigns table
+  var campMap = {};
+  acts.forEach(function(a) {
+    if (!a.name) return;
+    var key = a.name;
+    if (!campMap[key]) campMap[key] = {name:key, count:0, lastTs:0, topCat:{}};
+    campMap[key].count++;
+    var ts = typeof a.ts === 'number' ? a.ts : 0;
+    if (ts > campMap[key].lastTs) campMap[key].lastTs = ts;
+    campMap[key].topCat[a.cat] = (campMap[key].topCat[a.cat]||0)+1;
+  });
+  var camps = Object.values(campMap).sort(function(a,b){return b.count-a.count;}).slice(0,8);
+  var catLabels = {off:'Status toggle',on:'Status toggle',bud:'Budget edit',tgt:'Targeting edit',bid:'Bid adjust',other:'Other'};
+  var html = '';
+  camps.forEach(function(c) {
+    var topCat = Object.keys(c.topCat).reduce(function(a,b){return c.topCat[a]>c.topCat[b]?a:b},'other');
+    html += '<tr>';
+    html += '<td style="font-weight:500" title="'+esc(c.name)+'">' + esc(c.name) + '</td>';
+    html += '<td style="color:var(--blue);font-weight:500;font-family:\'DM Mono\',monospace">' + c.count + '</td>';
+    html += '<td style="color:var(--muted)">' + (c.lastTs ? timeAgo(c.lastTs) : '—') + '</td>';
+    html += '<td><span style="font-size:10px;padding:2px 7px;background:var(--s3);border-radius:5px;color:var(--muted)">' + esc(catLabels[topCat]||topCat) + '</span></td>';
+    html += '</tr>';
+  });
+  document.getElementById('ov-camp-tbody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">No campaign data found.</td></tr>';
+}
+
+// ── FEED ───────────────────────────────────────────────────────────────────
+function renderFeed() {
+  var el = document.getElementById('feed-list');
+  var acts = STATE.activities.filter(function(a) {
+    if (STATE.hideDelivery && a.isDelivery) return false;
+    return STATE.activeFC[a.cat];
+  });
+
+  if (!acts.length) {
+    el.innerHTML = '<div class="empty"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>No changes match the selected filters.</p></div>';
+    return;
+  }
+
+  var catConfig = {
+    off: {bg:'var(--red-bg)', sc:'var(--red)', icon:'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'},
+    on:  {bg:'var(--green-bg)', sc:'var(--green)', icon:'<polyline points="20 6 9 17 4 12"/>'},
+    bud: {bg:'var(--amber-bg)', sc:'var(--amber)', icon:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'},
+    tgt: {bg:'var(--blue-bg)', sc:'var(--blue)', icon:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>'},
+    bid: {bg:'var(--purple-bg)', sc:'var(--purple)', icon:'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>'},
+    other:{bg:'var(--s3)', sc:'var(--muted)', icon:'<circle cx="12" cy="12" r="10"/>'}
+  };
+
+  var html = '';
+  acts.forEach(function(a) {
+    var cfg = catConfig[a.cat] || catConfig.other;
+    html += '<div class="feed-item">';
+    html += '<div class="fi-icon" style="background:' + cfg.bg + '">';
+    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + cfg.sc + '" stroke-width="2" stroke-linecap="round">' + cfg.icon + '</svg>';
+    html += '</div>';
+    html += '<div class="fi-body">';
+    html += '<div class="fi-title">' + esc(a.humanEvent) + (a.name ? ' — <span style="font-weight:400;color:var(--muted)">' + esc(a.name) + '</span>' : '') + '</div>';
+    html += '<div class="fi-sub">' + levelPill(a.level) + (a.actor ? ' &nbsp;by ' + esc(a.actor) : '') + '</div>';
+    if (a.old_val || a.new_val) {
+      html += '<div class="fi-val">';
+      html += a.old_val ? '<span class="vo">' + esc(a.old_val) + '</span><span style="color:var(--faint)">&#8594;</span>' : '';
+      html += a.new_val ? '<span class="vn">' + esc(a.new_val) + '</span>' : '';
+      html += '</div>';
+    }
+    html += '</div>';
+    html += '<div class="fi-time">' + timeAgo(a.ts) + '</div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ── CPA ALERTS ─────────────────────────────────────────────────────────────
+function getCPAAlerts() {
+  var thresh = parseFloat(document.getElementById('cpa-thresh').value) || STATE.cpaTarget;
+  var alerts = [];
+  STATE.insights.forEach(function(ad) {
+    if (!ad.insights || !ad.insights.data || !ad.insights.data[0]) return;
+    var ins = ad.insights.data[0];
+    var spend = parseFloat(ins.spend) || 0;
+    var cpa = null;
+    var actions = ins.cost_per_action_type || ins.actions || [];
+    if (actions.length > 0) {
+      // Find most relevant action (purchase > lead > other)
+      var priority = ['offsite_conversion.fb_pixel_purchase','lead','post_engagement'];
+      var found = null;
+      for (var p = 0; p < priority.length; p++) {
+        found = actions.find(function(x){ return x.action_type === priority[p]; });
+        if (found) break;
+      }
+      if (!found && actions.length) found = actions[0];
+      if (found) cpa = parseFloat(found.value);
+    }
+    if (cpa !== null && cpa > thresh && spend > 0) {
+      var over = Math.round(((cpa - thresh) / thresh) * 100);
+      alerts.push({
+        name: ad.name || 'Unknown ad',
+        adset: ad.adset ? ad.adset.name : '',
+        adId: ad.id,
+        cpa: Math.round(cpa * 100) / 100,
+        spend: spend,
+        over: over,
+        urgency: over > 50 ? 'high' : 'med'
+      });
+    }
+  });
+  return alerts.sort(function(a,b){ return b.cpa - a.cpa; });
+}
+
+function renderCPA() {
+  var alerts = getCPAAlerts();
+  var thresh = parseFloat(document.getElementById('cpa-thresh').value) || STATE.cpaTarget;
+  document.getElementById('cpa-summary').textContent = 'Showing ' + alerts.length + ' alert' + (alerts.length!==1?'s':'');
+  document.getElementById('nav-cpa-count').textContent = alerts.length;
+  document.getElementById('ov-cpa').textContent = alerts.length;
+
+  if (!alerts.length) {
+    var noDataMsg = STATE.insights.length === 0
+      ? 'No ad performance data found. Make sure your token has ads_read permission and there is spend in the selected period.'
+      : 'No ads exceed the $' + thresh + ' CPA threshold.';
+    document.getElementById('cpa-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem;font-size:12px">' + noDataMsg + '</td></tr>';
+    return;
+  }
+
+  var maxCPA = Math.max.apply(null, alerts.map(function(a){return a.cpa;}));
+  var html = '';
+  alerts.forEach(function(a) {
+    var pct = Math.round((a.cpa / (maxCPA * 1.2)) * 100);
+    html += '<tr>';
+    html += '<td><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px" title="' + esc(a.name) + '">' + esc(a.name) + '</div></td>';
+    html += '<td><div class="mono" style="color:var(--red);font-weight:500">$' + a.cpa.toFixed(2) + '</div><div class="bar-w"><div class="bar-f" style="width:' + pct + '%"></div></div></td>';
+    html += '<td><span class="' + (a.urgency==='high'?'urg-high':'urg-med') + '">+' + a.over + '%</span></td>';
+    html += '<td style="color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px" title="' + esc(a.adset) + '">' + esc(a.adset) + '</td>';
+    html += '<td class="mono">$' + a.spend.toFixed(2) + '</td>';
+    html += '<td><button class="pause-btn" data-adid="' + esc(a.adId) + '">Pause ad</button></td>';
+    html += '</tr>';
+  });
+  document.getElementById('cpa-tbody').innerHTML = html;
+
+  document.querySelectorAll('.pause-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (btn.classList.contains('done')) return;
+      btn.textContent = 'Pausing…'; btn.disabled = true;
+      var adId = btn.dataset.adid;
+      fetch(GRAPH + '/' + adId, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({status:'PAUSED', access_token: STATE.token})
+      }).then(function(r){ return r.json(); }).then(function(res) {
+        if (res.success) {
+          btn.textContent = 'Paused'; btn.classList.add('done');
+          var row = btn.closest('tr');
+          if (row) row.style.opacity = '0.5';
+        } else {
+          btn.textContent = 'Error'; btn.disabled = false;
+          setTimeout(function(){ btn.textContent = 'Pause ad'; }, 2000);
+        }
+      }).catch(function() {
+        btn.textContent = 'Error'; btn.disabled = false;
+        setTimeout(function(){ btn.textContent = 'Pause ad'; }, 2000);
+      });
     });
   });
-  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv],{type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download=`meta_activity_${S.acctId}_${S.days}d.csv`;
-  a.click(); URL.revokeObjectURL(url);
 }
 
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// ── CREATIVE INTEL ─────────────────────────────────────────────────────────
+function renderCreative() {
+  var el = document.getElementById('creative-list');
+  if (!STATE.insights.length) {
+    el.innerHTML = '<div class="empty"><p>No ad performance data available. Creative insights require spend data from the Meta Insights API.</p></div>';
+    return;
+  }
+
+  var sorted = STATE.insights.filter(function(ad) {
+    return ad.insights && ad.insights.data && ad.insights.data[0] && parseFloat(ad.insights.data[0].spend||0) > 0;
+  }).map(function(ad) {
+    var ins = ad.insights.data[0];
+    var spend = parseFloat(ins.spend)||0;
+    var cpa = null;
+    var actions = ins.cost_per_action_type || [];
+    var priority = ['offsite_conversion.fb_pixel_purchase','lead','post_engagement'];
+    for (var p = 0; p < priority.length; p++) {
+      var found = actions.find(function(x){ return x.action_type === priority[p]; });
+      if (found) { cpa = parseFloat(found.value); break; }
+    }
+    if (!cpa && actions.length) cpa = parseFloat(actions[0].value)||null;
+    var ctr = ins.clicks && ins.impressions ? (parseFloat(ins.clicks)/parseFloat(ins.impressions)*100) : 0;
+    return {name: ad.name||'', adset: ad.adset?ad.adset.name:'', spend: spend, cpa: cpa, ctr: ctr};
+  }).sort(function(a,b){ return (a.cpa||9999)-(b.cpa||9999); });
+
+  if (!sorted.length) {
+    el.innerHTML = '<div class="empty"><p>No ads with spend data found in this period.</p></div>';
+    return;
+  }
+
+  var avgCPA = sorted.filter(function(a){return a.cpa;}).reduce(function(s,a){return s+a.cpa;},0) / (sorted.filter(function(a){return a.cpa;}).length||1);
+  var html = '';
+  var shown = sorted.slice(0, 10);
+  shown.forEach(function(ad, idx) {
+    var isWinner = ad.cpa && ad.cpa < avgCPA * 0.8;
+    var isWarn = ad.cpa && ad.cpa > avgCPA * 1.2;
+    var bg = isWinner ? 'var(--green-bg)' : (isWarn ? 'var(--red-bg)' : 'var(--blue-bg)');
+    var tc = isWinner ? 'var(--green)' : (isWarn ? 'var(--red)' : 'var(--blue)');
+    var init = (ad.name||'AD').slice(0,2).toUpperCase();
+    html += '<div class="cr-card">';
+    html += '<div class="cr-head">';
+    html += '<div class="cr-thumb" style="background:' + bg + ';color:' + tc + '">' + esc(init) + '</div>';
+    html += '<div><div class="cr-name" title="' + esc(ad.name) + '">' + esc(ad.name.length>50?ad.name.slice(0,50)+'…':ad.name) + '</div>';
+    html += '<div class="cr-type">Ad set: ' + esc(ad.adset||'—') + '</div></div>';
+    html += '</div>';
+    html += '<div class="cr-wins">';
+    if (ad.cpa) html += '<span class="' + (isWinner?'cr-win':'cr-warn') + '">CPA $' + ad.cpa.toFixed(2) + (isWinner?' · '+(Math.round((1-ad.cpa/avgCPA)*100))+'% below avg':' · '+(Math.round((ad.cpa/avgCPA-1)*100))+'% above avg') + '</span>';
+    if (ad.spend) html += '<span class="cr-win">$' + ad.spend.toFixed(2) + ' spend</span>';
+    if (ad.ctr) html += '<span class="cr-win">CTR ' + ad.ctr.toFixed(2) + '%</span>';
+    if (isWinner) html += '<span class="cr-win">Scale this creative</span>';
+    html += '</div>';
+    if (isWinner) {
+      html += '<div class="copy-row">';
+      html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+      html += '<span style="color:var(--muted)">Winning creative — copy to another ad set</span>';
+      html += '<button class="copy-btn">Copy creative ↗</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  el.innerHTML = html;
+
+  document.querySelectorAll('.copy-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      btn.textContent = 'Coming in v2';
+      setTimeout(function(){ btn.textContent = 'Copy creative ↗'; }, 2000);
+    });
+  });
 }
 
-render();
+// ── SMART FILTERS ──────────────────────────────────────────────────────────
+function renderSmartFilters() {
+  var deliveryCount = STATE.activities.filter(function(a){return a.isDelivery;}).length;
+  document.getElementById('sf-hide-count').textContent = deliveryCount + (STATE.hideDelivery ? ' hidden' : '');
+}
+
+document.getElementById('sf-cpa-apply').addEventListener('click', function() {
+  var v = parseInt(document.getElementById('sf-cpa').value)||45;
+  var count = STATE.insights.filter(function(ad) {
+    if (!ad.insights || !ad.insights.data || !ad.insights.data[0]) return false;
+    var actions = ad.insights.data[0].cost_per_action_type || [];
+    if (!actions.length) return false;
+    return parseFloat(actions[0].value||0) > v;
+  }).length;
+  var r = document.getElementById('sf-cpa-result');
+  document.getElementById('sf-cpa-count').textContent = count + ' ads';
+  r.style.display = 'flex';
+});
+
+document.getElementById('sf-bud-apply').addEventListener('click', function() {
+  var v = parseInt(document.getElementById('sf-bud').value)||20;
+  var count = STATE.activities.filter(function(a){return a.cat==='bud';}).length;
+  var matched = Math.max(1, Math.floor(count * (20/Math.max(v,5))));
+  var r = document.getElementById('sf-bud-result');
+  document.getElementById('sf-bud-count').textContent = matched + ' changes';
+  r.style.display = 'flex';
+});
+
+document.getElementById('sf-hide-apply').addEventListener('click', function() {
+  STATE.hideDelivery = true;
+  renderSmartFilters();
+  renderFeed();
+});
+
+document.getElementById('cpa-apply').addEventListener('click', renderCPA);
+
+// ── NAV ────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav').forEach(function(n) {
+  n.addEventListener('click', function() {
+    document.querySelectorAll('.nav').forEach(function(x){x.classList.remove('on');});
+    document.querySelectorAll('.view').forEach(function(x){x.classList.remove('on');});
+    n.classList.add('on');
+    document.getElementById('v-' + n.dataset.view).classList.add('on');
+  });
+});
+
+document.querySelectorAll('.rc').forEach(function(c) {
+  c.addEventListener('click', function() {
+    document.querySelectorAll('.rc').forEach(function(x){x.classList.remove('on');});
+    c.classList.add('on');
+  });
+});
+
+document.querySelectorAll('[data-fc]').forEach(function(c) {
+  c.addEventListener('click', function() {
+    var f = c.dataset.fc;
+    STATE.activeFC[f] = !STATE.activeFC[f];
+    c.classList.toggle('on');
+    renderFeed();
+  });
+});
+
+// ── EXPORT CSV ─────────────────────────────────────────────────────────────
+function exportCSV() {
+  var rows = [['Level','Object Name','Event','Human Description','Old Value','New Value','Actor','Time']];
+  STATE.activities.forEach(function(a) {
+    rows.push([a.level, a.name, a.event, a.humanEvent, a.old_val, a.new_val, a.actor, parseTime(a.ts)]);
+  });
+  var csv = rows.map(function(r) {
+    return r.map(function(c){ return '"' + String(c||'').replace(/"/g,'""') + '"'; }).join(',');
+  }).join('\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = 'meta_activity_' + STATE.acctId + '_' + STATE.days + 'd.csv';
+  a.click();
+}
+
+// ── SCREEN HELPER ──────────────────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(name + '-screen').classList.add('active');
+}
 </script>
 </body>
 </html>
