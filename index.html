@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Activity Log</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --surface3: #1e1e28;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f5;
+    --muted: #8888a0;
+    --faint: #3a3a4a;
+    --blue: #4f8ef7;
+    --blue-dim: rgba(79,142,247,0.12);
+    --blue-border: rgba(79,142,247,0.3);
+    --green: #3dd68c;
+    --green-dim: rgba(61,214,140,0.1);
+    --amber: #f7c34f;
+    --amber-dim: rgba(247,195,79,0.1);
+    --pink: #f74fa0;
+    --pink-dim: rgba(247,79,160,0.1);
+    --red: #f74f4f;
+    --red-dim: rgba(247,79,79,0.1);
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; }
+  
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 2px; }
+
+  /* LAYOUT */
+  .app { min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* PIN SCREEN */
+  .pin-screen {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 32px; padding: 2rem;
+  }
+  .pin-logo {
+    width: 56px; height: 56px; background: var(--blue-dim);
+    border: 1px solid var(--blue-border); border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pin-logo svg { width: 26px; height: 26px; stroke: var(--blue); }
+  .pin-title { text-align: center; }
+  .pin-title h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .pin-title p { color: var(--muted); font-size: 13px; }
+  .pin-dots { display: flex; gap: 12px; }
+  .pin-dot {
+    width: 52px; height: 60px; background: var(--surface2);
+    border: 1px solid var(--border2); border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-family: 'DM Mono', monospace;
+    color: var(--text); transition: border-color 0.2s;
+  }
+  .pin-dot.filled { border-color: var(--blue); color: var(--blue); }
+  .pin-dot.error { border-color: var(--red) !important; color: var(--red) !important; }
+  .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 200px; }
+  .key-btn {
+    height: 52px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-family: 'Syne', sans-serif;
+    font-size: 18px; font-weight: 500; cursor: pointer; transition: all 0.1s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .key-btn:hover { background: var(--surface3); border-color: var(--border2); }
+  .key-btn:active { transform: scale(0.95); }
+  .key-btn.del { font-size: 14px; color: var(--muted); }
+  .pin-error { color: var(--red); font-size: 12px; font-weight: 500; opacity: 0; transition: opacity 0.2s; }
+  .pin-error.show { opacity: 1; }
+
+  /* CONFIG SCREEN */
+  .config-screen { flex: 1; display: flex; flex-direction: column; max-width: 560px; width: 100%; margin: 0 auto; padding: 2.5rem 1.5rem; gap: 28px; }
+  .config-header { display: flex; align-items: center; gap: 12px; }
+  .config-header-icon {
+    width: 40px; height: 40px; background: var(--blue-dim);
+    border: 1px solid var(--blue-border); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .config-header h1 { font-size: 18px; font-weight: 600; }
+  .config-header p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .field-group { display: flex; flex-direction: column; gap: 8px; }
+  .field-label { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .field-hint { font-size: 11px; color: var(--faint); margin-top: 4px; line-height: 1.5; }
+  
+  input[type=text], input[type=password], input[type=date] {
+    width: 100%; padding: 11px 14px; background: var(--surface2);
+    border: 1px solid var(--border2); border-radius: var(--radius);
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px;
+    outline: none; transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(79,142,247,0.1); }
+  input::placeholder { color: var(--faint); }
+
+  .token-row { display: flex; gap: 8px; align-items: flex-start; }
+  .token-row input { flex: 1; }
+  .token-link {
+    display: inline-flex; align-items: center; gap: 5px; margin-top: 4px;
+    font-size: 11px; color: var(--blue); text-decoration: none; opacity: 0.8;
+  }
+  .token-link:hover { opacity: 1; }
+
+  .chips-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border2); background: transparent;
+    color: var(--muted); transition: all 0.15s; font-family: 'Syne', sans-serif;
+  }
+  .chip.active { background: var(--blue-dim); border-color: var(--blue-border); color: var(--blue); }
+  .chip:hover:not(.active) { border-color: var(--border2); color: var(--text); background: var(--surface2); }
+
+  .custom-range { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .btn-primary {
+    width: 100%; padding: 13px; background: var(--blue); border: none;
+    border-radius: var(--radius); color: #fff; font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-primary:hover { background: #6fa3f9; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .error-box {
+    background: var(--red-dim); border: 1px solid rgba(247,79,79,0.25);
+    border-radius: var(--radius); padding: 12px 14px; font-size: 12px;
+    color: #f99; line-height: 1.5;
+  }
+
+  /* RESULTS SCREEN */
+  .results-screen { flex: 1; display: flex; flex-direction: column; max-width: 860px; width: 100%; margin: 0 auto; padding: 1.5rem; }
+  .results-topbar {
+    display: flex; align-items: center; gap: 12px; padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border); margin-bottom: 1.25rem;
+  }
+  .back-btn {
+    padding: 7px 12px; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; color: var(--muted); font-family: 'Syne', sans-serif;
+    font-size: 12px; cursor: pointer; transition: all 0.15s;
+  }
+  .back-btn:hover { color: var(--text); border-color: var(--border2); background: var(--surface3); }
+  .topbar-info { flex: 1; }
+  .topbar-info h2 { font-size: 15px; font-weight: 600; font-family: 'DM Mono', monospace; }
+  .topbar-info p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .export-btn {
+    padding: 7px 14px; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; color: var(--muted); font-family: 'Syne', sans-serif;
+    font-size: 12px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+  }
+  .export-btn:hover { color: var(--text); border-color: var(--border2); }
+
+  .filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .filter-label { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+    border-radius: 16px; border: 1px solid var(--border2); background: transparent;
+    font-size: 11px; font-weight: 500; cursor: pointer; font-family: 'Syne', sans-serif;
+    transition: all 0.15s; color: var(--muted);
+  }
+  .filter-chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .filter-chip.active-acct { background: var(--green-dim); border-color: rgba(61,214,140,0.3); color: var(--green); }
+  .filter-chip.active-camp { background: var(--blue-dim); border-color: var(--blue-border); color: var(--blue); }
+  .filter-chip.active-adset { background: var(--amber-dim); border-color: rgba(247,195,79,0.3); color: var(--amber); }
+  .filter-chip.active-ad { background: var(--pink-dim); border-color: rgba(247,79,160,0.3); color: var(--pink); }
+
+  /* ACTIVITY GROUPS */
+  .group { margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .group-head {
+    display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    background: var(--surface); cursor: pointer; transition: background 0.15s;
+    border-bottom: 1px solid var(--border);
+  }
+  .group-head:hover { background: var(--surface2); }
+  .group-head.collapsed { border-bottom: none; }
+  .level-pill {
+    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .pill-acct { background: var(--green-dim); color: var(--green); border: 1px solid rgba(61,214,140,0.25); }
+  .pill-camp { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(79,142,247,0.25); }
+  .pill-adset { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(247,195,79,0.25); }
+  .pill-ad { background: var(--pink-dim); color: var(--pink); border: 1px solid rgba(247,79,160,0.25); }
+  .group-count { font-size: 12px; color: var(--muted); }
+  .group-toggle { margin-left: auto; font-size: 10px; color: var(--faint); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--surface2); }
+  th {
+    padding: 9px 14px; text-align: left; font-size: 10px; font-weight: 600;
+    color: var(--faint); letter-spacing: 0.07em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px; font-size: 12px; border-bottom: 1px solid var(--border);
+    vertical-align: top; line-height: 1.5;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .td-field { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text); }
+  .td-obj { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .td-time { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--faint); }
+  .val-old { color: var(--muted); text-decoration: line-through; font-family: 'DM Mono', monospace; font-size: 11px; }
+  .val-new { color: var(--green); font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; }
+  .val-none { color: var(--faint); font-style: italic; font-size: 11px; }
+  .event-tag {
+    display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .tag-update { background: rgba(79,142,247,0.12); color: var(--blue); }
+  .tag-create { background: var(--green-dim); color: var(--green); }
+  .tag-delete { background: var(--red-dim); color: var(--red); }
+  .tag-other { background: var(--surface3); color: var(--muted); }
+
+  .empty-state {
+    text-align: center; padding: 4rem 2rem; color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .empty-state svg { opacity: 0.3; }
+  .empty-state p { font-size: 13px; }
+
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .stats-row { display: flex; gap: 10px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .stat-card {
+    flex: 1; min-width: 100px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 14px;
+  }
+  .stat-num { font-size: 22px; font-weight: 600; font-family: 'DM Mono', monospace; margin-bottom: 2px; }
+  .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .debug-toggle { font-size: 11px; color: var(--faint); cursor: pointer; text-decoration: underline; margin-top: 8px; }
+  .debug-panel { display: none; margin-top: 8px; padding: 10px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+const GRAPH_BASE = 'https://graph.facebook.com/v22.0';
+
+let S = {
+  screen: 'pin',
+  pin: '',
+  pinError: false,
+  acctId: '',
+  token: '',
+  days: '30',
+  customFrom: '',
+  customTo: '',
+  loading: false,
+  error: '',
+  activities: [],
+  filters: ['account','campaign','adset','ad'],
+  collapsed: {},
+  debugRaw: '',
+  showDebug: false
+};
+
+const LEVELS = {
+  account: { label:'Account', pill:'pill-acct', color:'var(--green)', filterClass:'active-acct', dotColor:'#3dd68c' },
+  campaign: { label:'Campaign', pill:'pill-camp', color:'var(--blue)', filterClass:'active-camp', dotColor:'#4f8ef7' },
+  adset: { label:'Ad set', pill:'pill-adset', color:'var(--amber)', filterClass:'active-adset', dotColor:'#f7c34f' },
+  ad: { label:'Ad', pill:'pill-ad', color:'var(--pink)', filterClass:'active-ad', dotColor:'#f74fa0' }
+};
+
+function tagClass(evt='') {
+  const e = evt.toUpperCase();
+  if (e.includes('CREATE') || e.includes('ADD')) return 'tag-create';
+  if (e.includes('DELETE') || e.includes('REMOVE')) return 'tag-delete';
+  if (e.includes('UPDATE') || e.includes('EDIT') || e.includes('CHANGE')) return 'tag-update';
+  return 'tag-other';
+}
+
+function normalizeLevel(raw='') {
+  const r = raw.toLowerCase();
+  if (r.includes('account')) return 'account';
+  if (r.includes('campaign')) return 'campaign';
+  if (r.includes('adset') || r.includes('ad_set') || r.includes('ad set')) return 'adset';
+  if (r.includes('ad')) return 'ad';
+  return 'account';
+}
+
+function groupByLevel(acts) {
+  const g = { account:[], campaign:[], adset:[], ad:[] };
+  acts.forEach(a => {
+    const lvl = normalizeLevel(a.object_type || a.level || '');
+    g[lvl].push(a);
+  });
+  return g;
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render() {
+  const el = document.getElementById('app');
+  if (S.screen === 'pin') el.innerHTML = renderPin();
+  else if (S.screen === 'config') el.innerHTML = renderConfig();
+  else el.innerHTML = renderResults();
+  bind();
+}
+
+function renderPin() {
+  const filled = S.pin.length;
+  return `
+  <div class="pin-screen">
+    <div class="pin-logo">
+      <svg fill="none" stroke-width="1.8" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="11" width="18" height="11" rx="2" stroke-linecap="round"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="pin-title">
+      <h1>Meta Activity Log</h1>
+      <p>Enter your 4-digit PIN</p>
+    </div>
+    <div class="pin-dots">
+      ${[0,1,2,3].map(i=>`<div class="pin-dot${filled>i?' filled':''}${S.pinError?' error':''}">${filled>i?'●':''}</div>`).join('')}
+    </div>
+    <p class="pin-error${S.pinError?' show':''}">Incorrect PIN. Try again.</p>
+    <div class="pin-keypad">
+      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((k,i)=>`
+        <button class="key-btn${k==='⌫'?' del':''}" data-key="${k}" ${k===''?'style="visibility:hidden"':''}>${k}</button>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
+function renderConfig() {
+  const isCustom = S.days === 'custom';
+  return `
+  <div class="config-screen">
+    <div class="config-header">
+      <div class="config-header-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Activity Log</h1>
+        <p>Pull real change history from Meta Graph API</p>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Meta Access Token</label>
+      <div class="token-row">
+        <input type="password" id="token-input" placeholder="EAAxxxxxx..." value="${S.token}" autocomplete="off">
+      </div>
+      <p class="field-hint">
+        Get a token from <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="color:var(--blue)">Meta Graph API Explorer</a> — needs <code style="background:var(--surface3);padding:1px 5px;border-radius:4px;font-size:10px">ads_read</code> permission.
+      </p>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Ad Account ID</label>
+      <input type="text" id="acct-input" placeholder="act_1234567890" value="${S.acctId}">
+      <p class="field-hint">Include the <code style="background:var(--surface3);padding:1px 5px;border-radius:4px;font-size:10px">act_</code> prefix.</p>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Time Range</label>
+      <div class="chips-row">
+        ${['7','30','60','90','custom'].map(d=>`
+          <button class="chip${S.days===d?' active':''}" data-days="${d}">${d==='custom'?'Custom':d+' days'}</button>
+        `).join('')}
+      </div>
+    </div>
+
+    ${isCustom ? `
+    <div class="field-group">
+      <label class="field-label">Date Range</label>
+      <div class="custom-range">
+        <div>
+          <label style="font-size:11px;color:var(--faint);display:block;margin-bottom:5px">From</label>
+          <input type="date" id="cf-input" value="${S.customFrom}">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--faint);display:block;margin-bottom:5px">To</label>
+          <input type="date" id="ct-input" value="${S.customTo}">
+        </div>
+      </div>
+    </div>` : ''}
+
+    ${S.error ? `<div class="error-box">${S.error}</div>` : ''}
+
+    <button class="btn-primary" id="fetch-btn" ${S.loading?'disabled':''}>
+      ${S.loading ? `<span class="spinner"></span> Fetching…` : 'Fetch Activity Log'}
+    </button>
+    
+    ${S.debugRaw ? `<span class="debug-toggle" id="debug-toggle">Show raw response</span>
+    <pre class="debug-panel" id="debug-panel" style="display:${S.showDebug?'block':'none'}">${escHtml(S.debugRaw)}</pre>` : ''}
+  </div>`;
+}
+
+function renderResults() {
+  const groups = groupByLevel(S.activities);
+  const total = S.activities.length;
+  const dateLabel = S.days==='custom' ? `${S.customFrom} → ${S.customTo}` : `Last ${S.days} days`;
+
+  const statCards = Object.entries(groups).map(([lvl, items]) => {
+    const m = LEVELS[lvl];
+    return `<div class="stat-card">
+      <div class="stat-num" style="color:${m.color}">${items.length}</div>
+      <div class="stat-lbl">${m.label}</div>
+    </div>`;
+  }).join('');
+
+  let groupsHTML = '';
+  ['account','campaign','adset','ad'].forEach(lvl => {
+    if (!S.filters.includes(lvl)) return;
+    const items = groups[lvl] || [];
+    if (!items.length) return;
+    const m = LEVELS[lvl];
+    const collapsed = S.collapsed[lvl];
+
+    const rows = items.map(a => {
+      const fields = a.changed_all_fields?.length ? a.changed_all_fields : [a.event_type||'Event'];
+      const when = a.event_time ? new Date(a.event_time*1000).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : (a.updated_time ? new Date(a.updated_time).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—');
+      const evt = a.event_type || a.action || 'Modified';
+      return fields.map(field => `
+        <tr>
+          <td>
+            <div class="td-field">${escHtml(field)}</div>
+            ${a.object_name ? `<div class="td-obj">${escHtml(a.object_name)}</div>` : ''}
+          </td>
+          <td><span class="event-tag ${tagClass(evt)}">${escHtml(evt)}</span></td>
+          <td class="td-time">${when}</td>
+          <td>${a.old_value ? `<span class="val-old">${escHtml(String(a.old_value))}</span>` : '<span class="val-none">—</span>'}</td>
+          <td>${a.new_value ? `<span class="val-new">${escHtml(String(a.new_value))}</span>` : '<span class="val-none">—</span>'}</td>
+        </tr>`).join('');
+    }).join('');
+
+    groupsHTML += `
+    <div class="group">
+      <div class="group-head${collapsed?' collapsed':''}" data-collapse="${lvl}">
+        <span class="level-pill ${m.pill}">${m.label}</span>
+        <span class="group-count">${items.length} change${items.length!==1?'s':''}</span>
+        <span class="group-toggle">${collapsed?'▶':'▼'}</span>
+      </div>
+      ${collapsed ? '' : `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Field</th><th>Event</th><th>Time</th><th>Old Value</th><th>New Value</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`}
+    </div>`;
+  });
+
+  const visibleTotal = ['account','campaign','adset','ad'].filter(l=>S.filters.includes(l)).reduce((s,l)=>s+(groups[l]?.length||0),0);
+
+  return `
+  <div class="results-screen">
+    <div class="results-topbar">
+      <button class="back-btn" id="back-btn">← Back</button>
+      <div class="topbar-info">
+        <h2>${S.acctId}</h2>
+        <p>${dateLabel} · ${total} total change${total!==1?'s':''}</p>
+      </div>
+      <button class="export-btn" id="export-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export CSV
+      </button>
+    </div>
+
+    <div class="stats-row">${statCards}</div>
+
+    <div class="filter-bar">
+      <span class="filter-label">Level</span>
+      ${['account','campaign','adset','ad'].map(lvl => {
+        const m = LEVELS[lvl];
+        const active = S.filters.includes(lvl);
+        return `<button class="filter-chip${active?' '+m.filterClass:''}" data-filter="${lvl}">
+          <span class="dot" style="background:${active?m.dotColor:'var(--faint)'}"></span>
+          ${m.label} (${groups[lvl]?.length||0})
+        </button>`;
+      }).join('')}
+    </div>
+
+    ${visibleTotal===0 ? `
+    <div class="empty-state">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <p>No changes found for the selected filters.</p>
+    </div>` : groupsHTML}
+  </div>`;
+}
+
+// ── EVENTS ──────────────────────────────────────────────────────────────────
+function bind() {
+  if (S.screen === 'pin') {
+    document.querySelectorAll('.key-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const k = btn.dataset.key;
+        if (k === '⌫') { S.pin = S.pin.slice(0,-1); S.pinError = false; render(); return; }
+        if (k === '' || S.pin.length >= 4) return;
+        S.pin += k;
+        S.pinError = false;
+        render();
+        if (S.pin.length === 4) {
+          setTimeout(() => {
+            if (S.pin === '1234') { S.screen = 'config'; S.pin = ''; render(); }
+            else { S.pinError = true; setTimeout(() => { S.pin = ''; render(); }, 500); render(); }
+          }, 150);
+        }
+      });
+    });
+  }
+  if (S.screen === 'config') {
+    document.getElementById('token-input')?.addEventListener('input', e => S.token = e.target.value);
+    document.getElementById('acct-input')?.addEventListener('input', e => S.acctId = e.target.value);
+    document.querySelectorAll('[data-days]').forEach(b => b.addEventListener('click', () => { S.days = b.dataset.days; render(); }));
+    document.getElementById('cf-input')?.addEventListener('change', e => S.customFrom = e.target.value);
+    document.getElementById('ct-input')?.addEventListener('change', e => S.customTo = e.target.value);
+    document.getElementById('fetch-btn')?.addEventListener('click', fetchData);
+    document.getElementById('debug-toggle')?.addEventListener('click', () => { S.showDebug = !S.showDebug; render(); });
+  }
+  if (S.screen === 'results') {
+    document.getElementById('back-btn')?.addEventListener('click', () => { S.screen = 'config'; S.error = ''; render(); });
+    document.getElementById('export-btn')?.addEventListener('click', exportCSV);
+    document.querySelectorAll('[data-filter]').forEach(b => {
+      b.addEventListener('click', () => {
+        const f = b.dataset.filter;
+        S.filters = S.filters.includes(f) ? (S.filters.length>1 ? S.filters.filter(x=>x!==f) : S.filters) : [...S.filters, f];
+        render();
+      });
+    });
+    document.querySelectorAll('[data-collapse]').forEach(b => {
+      b.addEventListener('click', () => { S.collapsed[b.dataset.collapse] = !S.collapsed[b.dataset.collapse]; render(); });
+    });
+  }
+}
+
+// ── FETCH ───────────────────────────────────────────────────────────────────
+async function fetchData() {
+  if (!S.token.trim()) { S.error = 'Please enter your Meta access token.'; render(); return; }
+  if (!S.acctId.trim()) { S.error = 'Please enter your Ad Account ID.'; render(); return; }
+
+  S.loading = true; S.error = ''; S.debugRaw = ''; render();
+
+  const now = Math.floor(Date.now()/1000);
+  let since, until;
+  if (S.days === 'custom') {
+    since = S.customFrom ? Math.floor(new Date(S.customFrom).getTime()/1000) : now - 30*86400;
+    until = S.customTo ? Math.floor(new Date(S.customTo+'T23:59:59').getTime()/1000) : now;
+  } else {
+    since = now - parseInt(S.days)*86400;
+    until = now;
+  }
+
+  const acctId = S.acctId.startsWith('act_') ? S.acctId : 'act_'+S.acctId;
+  const params = new URLSearchParams({
+    access_token: S.token,
+    since: since,
+    until: until,
+    limit: 200,
+    fields: 'event_type,event_time,object_type,object_name,object_id,changed_all_fields,extra_data,actor_name,application_name'
+  });
+
+  try {
+    const resp = await fetch(`${GRAPH_BASE}/${acctId}/activities?${params}`);
+    const json = await resp.json();
+    S.debugRaw = JSON.stringify(json, null, 2);
+
+    if (json.error) {
+      S.error = `Meta API error: ${json.error.message}`;
+      S.loading = false; render(); return;
+    }
+
+    let acts = [];
+    if (Array.isArray(json.data)) {
+      acts = json.data.map(a => {
+        // Parse extra_data for old/new values
+        let old_val = '', new_val = '';
+        if (a.extra_data) {
+          try {
+            const ed = typeof a.extra_data === 'string' ? JSON.parse(a.extra_data) : a.extra_data;
+            old_val = ed.old_value ?? ed.oldValue ?? ed.from ?? '';
+            new_val = ed.new_value ?? ed.newValue ?? ed.to ?? ed.value ?? '';
+          } catch(e) {}
+        }
+        return { ...a, old_value: old_val, new_value: new_val };
+      });
+      // Paginate if next page available
+      if (json.paging?.next && acts.length < 500) {
+        try {
+          const resp2 = await fetch(json.paging.next);
+          const json2 = await resp2.json();
+          if (Array.isArray(json2.data)) {
+            acts = [...acts, ...json2.data.map(a => {
+              let old_val='', new_val='';
+              if (a.extra_data) {
+                try { const ed = typeof a.extra_data==='string'?JSON.parse(a.extra_data):a.extra_data; old_val=ed.old_value??ed.oldValue??ed.from??''; new_val=ed.new_value??ed.newValue??ed.to??ed.value??''; } catch(e){}
+              }
+              return { ...a, old_value: old_val, new_value: new_val };
+            })];
+          }
+        } catch(e) {}
+      }
+    }
+
+    S.activities = acts;
+    S.screen = 'results';
+  } catch(err) {
+    S.error = `Network error: ${err.message}. Check CORS — you may need to run this from a local server or the token is invalid.`;
+    S.debugRaw = err.toString();
+  }
+  S.loading = false;
+  render();
+}
+
+function exportCSV() {
+  const rows = [['Level','Object Name','Object ID','Event','Field','Old Value','New Value','Actor','Time']];
+  S.activities.forEach(a => {
+    const fields = a.changed_all_fields?.length ? a.changed_all_fields : ['—'];
+    fields.forEach(f => {
+      rows.push([
+        a.object_type||'',
+        a.object_name||'',
+        a.object_id||'',
+        a.event_type||'',
+        f,
+        a.old_value||'',
+        a.new_value||'',
+        a.actor_name||a.application_name||'',
+        a.event_time ? new Date(a.event_time*1000).toISOString() : (a.updated_time||'')
+      ]);
+    });
+  });
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`meta_activity_${S.acctId}_${S.days}d.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+render();
+</script>
+</body>
+</html>
