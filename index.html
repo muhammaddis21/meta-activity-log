@@ -375,6 +375,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <button class="rc" data-r="90">90d</button>
       </div>
       <span class="sync-label" id="sync-label">Loading…</span>
+      <button id="refresh-btn" onclick="reloadData()" style="padding:4px 10px;font-size:11px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">↻ Refresh</button>
     </div>
 
     <!-- QC TRIGGER BANNER -->
@@ -772,6 +773,43 @@ function renderPicker(){
 }
 
 // ── LOAD GROUP ─────────────────────────────────────────────────────────────
+function showDataError(msg) {
+  document.getElementById('sync-label').textContent = '⚠ Error — ' + msg;
+  document.getElementById('sync-label').style.color = 'var(--red)';
+  // Show error on overview
+  document.getElementById('ov-total').textContent = '!';
+  document.getElementById('ov-cpa').textContent = '!';
+  document.getElementById('ov-budget').textContent = '!';
+  document.getElementById('ov-paused').textContent = '!';
+  var tbody = document.getElementById('ov-camp-tbody');
+  if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:1.5rem;color:var(--red);font-size:12px;text-align:center">⚠ ' + msg + '</td></tr>';
+}
+
+async function reloadData() {
+  if(!STATE.group) return;
+  STATE.activities=[];STATE.insights=[];STATE.newCampaignsDetected=false;
+  document.getElementById('sync-label').textContent='Loading…';
+  document.getElementById('sync-label').style.color='';
+  var promises=(STATE.group.accounts||[]).map(function(acct){return fetchAccountData(acct.id);});
+  try{
+    var results=await Promise.all(promises);
+    results.forEach(function(r){
+      STATE.activities=STATE.activities.concat(r.activities||[]);
+      STATE.insights=STATE.insights.concat(r.insights||[]);
+    });
+    document.getElementById('sync-label').textContent='Synced '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('sync-label').style.color='';
+    if(STATE.newCampaignsDetected){
+      document.getElementById('qc-banner').classList.add('show');
+      document.getElementById('nav-qc-badge').style.display='inline';
+    }
+    renderAll();
+  }catch(err){
+    showDataError(err.message);
+    console.error('Fetch error:', err);
+  }
+}
+
 async function loadGroup(group){
   STATE.group=group;
   STATE.activities=[];STATE.insights=[];STATE.newCampaignsDetected=false;
@@ -800,47 +838,61 @@ async function loadGroup(group){
   renderQCChecklist(group);
   showScreen('app');
 
-  document.getElementById('sync-label').textContent='Loading…';
-
-  // Fetch all accounts in parallel
-  var promises=(group.accounts||[]).map(function(acct){return fetchAccountData(acct.id);});
-  try{
-    var results=await Promise.all(promises);
-    results.forEach(function(r){
-      STATE.activities=STATE.activities.concat(r.activities||[]);
-      STATE.insights=STATE.insights.concat(r.insights||[]);
-    });
-    document.getElementById('sync-label').textContent='Synced '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-    if(STATE.newCampaignsDetected){
-      document.getElementById('qc-banner').classList.add('show');
-      document.getElementById('nav-qc-badge').style.display='inline';
-    }
-    renderAll();
-  }catch(err){
-    document.getElementById('sync-label').textContent='Error: '+err.message;
-  }
+  await reloadData();
 }
 
 async function fetchAccountData(acctId){
+  // Ensure act_ prefix
+  if(!acctId.startsWith('act_')) acctId = 'act_' + acctId;
+  
   var now=Math.floor(Date.now()/1000);
   var since=now-STATE.days*86400,until=now;
-  var params=new URLSearchParams({since:since,until:until,limit:200,fields:'event_type,event_time,object_type,object_name,object_id,changed_all_fields,extra_data,actor_name,application_name'});
-  var resp=await fetch(GRAPH+'/'+acctId+'/activities?'+params);
-  var json=await resp.json();
-  if(json.error)throw new Error(json.error.message);
+  var params=new URLSearchParams({
+    since:since, until:until, limit:200,
+    fields:'event_type,event_time,object_type,object_name,object_id,changed_all_fields,extra_data,actor_name,application_name'
+  });
+
+  var actUrl = GRAPH+'/'+acctId+'/activities?'+params;
+  console.log('Fetching:', actUrl);
+
+  var resp = await fetch(actUrl);
+  var text = await resp.text();
+  
+  var json;
+  try { json = JSON.parse(text); }
+  catch(e) { throw new Error('API returned HTML instead of JSON. Worker URL may be wrong. Got: ' + text.slice(0,100)); }
+  
+  if(json.error) throw new Error('Meta API: ' + json.error.message + ' (code ' + json.error.code + ')');
+  
   var rawActs=json.data||[];
   if(json.paging&&json.paging.next&&rawActs.length<500){
-    try{var p2=await fetch(json.paging.next);var p2j=await p2.json();if(p2j.data)rawActs=rawActs.concat(p2j.data);}catch(e){}
+    try{
+      var nextUrl = json.paging.next;
+      // Replace graph.facebook.com with our worker proxy
+      nextUrl = nextUrl.replace('https://graph.facebook.com/v22.0', GRAPH);
+      var p2=await fetch(nextUrl);
+      var p2j=await p2.json();
+      if(p2j.data)rawActs=rawActs.concat(p2j.data);
+    }catch(e){}
   }
   var activities=processActivities(rawActs);
+  
   var insights=[];
   try{
-    var ip=new URLSearchParams({fields:'name,adset_id,adset{name},status,insights.date_preset(last_7d){spend,cost_per_action_type,actions,impressions,clicks}',limit:100,filtering:JSON.stringify([{field:'effective_status',operator:'IN',value:['ACTIVE','PAUSED','WITH_ISSUES']}])});
-    var ir=await fetch(GRAPH+'/'+acctId+'/ads?'+ip);
-    var ij=await ir.json();
+    var ip=new URLSearchParams({
+      fields:'name,adset_id,adset{name},status,insights.date_preset(last_7d){spend,cost_per_action_type,actions,impressions,clicks}',
+      limit:100,
+      filtering:JSON.stringify([{field:'effective_status',operator:'IN',value:['ACTIVE','PAUSED','WITH_ISSUES']}])
+    });
+    var insUrl = GRAPH+'/'+acctId+'/ads?'+ip;
+    var ir=await fetch(insUrl);
+    var itext=await ir.text();
+    var ij;
+    try{ ij=JSON.parse(itext); } catch(e){ ij={data:[]}; }
     insights=ij.data||[];
-  }catch(e){}
-  return{activities:activities,insights:insights};
+  }catch(e){ console.warn('Insights fetch failed:', e.message); }
+  
+  return{activities:activities, insights:insights};
 }
 
 // ── BENCHMARKS SIDEBAR ─────────────────────────────────────────────────────
@@ -1133,7 +1185,7 @@ document.querySelectorAll('.rc').forEach(function(c){
     document.querySelectorAll('.rc').forEach(function(x){x.classList.remove('on');});
     c.classList.add('on');
     STATE.days=parseInt(c.dataset.r)||30;
-    if(STATE.group)loadGroup(STATE.group);
+    if(STATE.group) reloadData();
   });
 });
 document.querySelectorAll('[data-fc]').forEach(function(c){
