@@ -281,7 +281,27 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <p>Select a client to load their dashboard</p>
   </div>
   <div id="group-cards"></div>
-  <button class="picker-add" id="picker-add-btn">+ Add new account</button>
+  <div id="manual-entry-wrap" style="width:100%;max-width:480px">
+    <button class="picker-add" id="picker-add-btn" style="margin-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none">+ Enter account manually</button>
+    <div id="manual-entry-form" style="display:none;background:var(--s1);border:1px dashed var(--border2);border-top:none;border-bottom-left-radius:var(--r-lg);border-bottom-right-radius:var(--r-lg);padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Ad Account ID</label>
+        <input type="text" id="manual-acct-id" placeholder="act_1234567890" style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Account name (optional)</label>
+        <input type="text" id="manual-acct-name" placeholder="e.g. Client XYZ" style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">CPA target (USD)</label>
+        <input type="number" id="manual-cpa" placeholder="100" value="100" style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none">
+      </div>
+      <div id="manual-err" style="display:none;background:var(--red-bg);border:1px solid var(--red-b);border-radius:var(--r);padding:8px 12px;font-size:12px;color:#f99"></div>
+      <button id="manual-load-btn" style="padding:11px;background:var(--blue);border:none;border-radius:var(--r);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        <span id="manual-btn-text">Load account</span>
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- ── APP SHELL ── -->
@@ -498,7 +518,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 </div>
 
 <script>
-var GRAPH = '/meta';
+var GRAPH = 'https://meta-activity-log.muhammad-d66.workers.dev/meta';
 var STATE = {
   pin:'', group:null, activities:[], insights:[],
   activeFC:{off:true,on:true,bud:true,tgt:true,bid:true},
@@ -700,8 +720,54 @@ function renderPicker(){
       if(group) loadGroup(group);
     });
   });
+  // Manual entry toggle
+  var manualOpen = false;
   document.getElementById('picker-add-btn').addEventListener('click',function(){
-    alert('To add a new account group, edit the config.js file in your GitHub repo.');
+    manualOpen = !manualOpen;
+    var form = document.getElementById('manual-entry-form');
+    form.style.display = manualOpen ? 'flex' : 'none';
+    form.style.flexDirection = 'column';
+    document.getElementById('picker-add-btn').textContent = manualOpen ? '✕ Cancel' : '+ Enter account manually';
+  });
+
+  document.getElementById('manual-load-btn').addEventListener('click', async function(){
+    var acctId = document.getElementById('manual-acct-id').value.trim();
+    var acctName = document.getElementById('manual-acct-name').value.trim() || 'Custom Account';
+    var cpa = parseFloat(document.getElementById('manual-cpa').value) || 100;
+    var errEl = document.getElementById('manual-err');
+    errEl.style.display = 'none';
+    if(!acctId){ errEl.textContent='Please enter an Ad Account ID.'; errEl.style.display='block'; return; }
+    if(!acctId.startsWith('act_')) acctId = 'act_' + acctId;
+    document.getElementById('manual-btn-text').innerHTML = '<span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block"></span> Loading…';
+    document.getElementById('manual-load-btn').disabled = true;
+    var customGroup = {
+      id: 'custom_' + Date.now(),
+      name: acctName,
+      logo: acctName.slice(0,3).toUpperCase(),
+      color: '#4f8ef7',
+      description: acctId,
+      accounts: [{ name: acctName, id: acctId }],
+      cpaRules: [
+        { keyword: 'booking', objective: 'Website Booking', good:{max:cpa,label:'Good'}, warning:{min:cpa,max:cpa*2,label:'Warning — review'}, bad:{min:cpa*2,label:'Pause immediately'} },
+        { keyword: 'lead',    objective: 'Meta Lead Gen',   good:{max:cpa*.6,label:'Good'}, warning:{min:cpa*.6,max:cpa*1.2,label:'Warning — review'}, bad:{min:cpa*1.2,label:'Pause immediately'} }
+      ],
+      defaultCPA: cpa,
+      benchmarks: [
+        { metric:'CPA Target', good:'< $'+cpa, warn:'$'+cpa+'–$'+(cpa*2), bad:'> $'+(cpa*2) },
+        { metric:'CTR',  good:'> 2.5%', warn:'1–2.5%', bad:'< 1%' },
+        { metric:'ROAS', good:'> 3.0x', warn:'2–3x',   bad:'< 2x' }
+      ],
+      qcChecklist: (APP_CONFIG&&APP_CONFIG.groups&&APP_CONFIG.groups[0])?APP_CONFIG.groups[0].qcChecklist:[],
+      notes: []
+    };
+    try {
+      await loadGroup(customGroup);
+    } catch(e) {
+      errEl.textContent = 'Could not load account: ' + e.message;
+      errEl.style.display = 'block';
+      document.getElementById('manual-btn-text').textContent = 'Load account';
+      document.getElementById('manual-load-btn').disabled = false;
+    }
   });
 }
 
